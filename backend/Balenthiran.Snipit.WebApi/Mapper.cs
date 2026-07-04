@@ -10,10 +10,10 @@ public class Mapper : Profile
 {
     public Mapper()
     {
-        CreateMap<IDomainTranscriptionJob, TranscriptionJobDto>();
-        CreateMap<IDomainCutJob, CutJobDto>();
+        CreateMap<IDomainTranscriptionJob, TranscriptionJob>();
+        CreateMap<IDomainCutJob, CutJob>();
         CreateMap<IDomainCutJob, CutJobResponse>();
-        CreateMap<DomainTranscriptSegment, TranscriptSegmentDto>();
-        CreateMap<DomainTranscriptWord, TranscriptWordDto>().ReverseMap();
+        CreateMap<DomainTranscriptSegment, TranscriptSegment>();
+        CreateMap<DomainTranscriptWord, TranscriptWord>().ReverseMap();
     }
 }

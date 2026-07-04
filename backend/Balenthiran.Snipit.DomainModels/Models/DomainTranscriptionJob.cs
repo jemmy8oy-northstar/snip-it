@@ -4,7 +4,7 @@ using Balenthiran.Snipit.DataModels.Models;
 
 namespace Balenthiran.Snipit.DomainModels.Models;
 
-public class DomainTranscriptionJob : TranscriptionJobDto, IDomainTranscriptionJob
+public class DomainTranscriptionJob : TranscriptionJob, IDomainTranscriptionJob
 {
     public string SourceFilePath { get; set; } = string.Empty;
     public IDomainTranscript? Transcript { get; set; }

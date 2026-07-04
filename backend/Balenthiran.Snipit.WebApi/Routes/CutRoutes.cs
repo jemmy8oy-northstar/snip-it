@@ -12,7 +12,7 @@ public static class CutRoutes
     {
         var group = parentGroup.MapGroup("/cuts");
 
-        group.MapPost("", async (CutRequestDto request, ICutService service, IMapper mapper, CancellationToken ct) =>
+        group.MapPost("", async (CutRequest request, ICutService service, IMapper mapper, CancellationToken ct) =>
         {
             var words = mapper.Map<List<DomainTranscriptWord>>(request.Words);
 

@@ -3,7 +3,7 @@ using Balenthiran.Snipit.DataModels.Models;
 
 namespace Balenthiran.Snipit.DomainModels.Models;
 
-public class DomainCutJob : CutJobDto, IDomainCutJob
+public class DomainCutJob : CutJob, IDomainCutJob
 {
     public Guid TranscriptionJobId { get; set; }
     public string SourceFilePath { get; set; } = string.Empty;

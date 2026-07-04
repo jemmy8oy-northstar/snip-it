@@ -1,6 +1,6 @@
 namespace Balenthiran.Snipit.DataModels.Models;
 
-public class TranscriptSegmentDto
+public class TranscriptSegment
 {
     public int Index { get; set; }
     public double Start { get; set; }

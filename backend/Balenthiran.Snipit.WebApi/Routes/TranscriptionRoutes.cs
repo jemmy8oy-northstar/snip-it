@@ -21,7 +21,7 @@ public static class TranscriptionRoutes
             await using var stream = file.OpenReadStream();
             var job = await service.SubmitAsync(stream, file.FileName, ct);
 
-            return Results.Ok(mapper.Map<TranscriptionJobDto>(job));
+            return Results.Ok(mapper.Map<TranscriptionJob>(job));
         })
         .DisableAntiforgery()
         .WithName("SubmitTranscription");
@@ -29,7 +29,7 @@ public static class TranscriptionRoutes
         group.MapGet("/{id:guid}", async (Guid id, ITranscriptionService service, IMapper mapper, CancellationToken ct) =>
         {
             var job = await service.GetJobAsync(id, ct);
-            return job is null ? Results.NotFound() : Results.Ok(mapper.Map<TranscriptionJobDto>(job));
+            return job is null ? Results.NotFound() : Results.Ok(mapper.Map<TranscriptionJob>(job));
         })
         .WithName("GetTranscriptionJob");
 
@@ -46,12 +46,12 @@ public static class TranscriptionRoutes
                 return Results.Conflict($"Transcription job is {job.Status} — transcript not ready yet.");
             }
 
-            var dto = new TranscriptDto
+            var dto = new Transcript
             {
                 TranscriptionJobId = job.Id,
                 DurationSeconds = job.Transcript.DurationSeconds,
-                Segments = mapper.Map<List<TranscriptSegmentDto>>(job.Transcript.Segments),
-                Words = mapper.Map<List<TranscriptWordDto>>(job.Transcript.Words),
+                Segments = mapper.Map<List<TranscriptSegment>>(job.Transcript.Segments),
+                Words = mapper.Map<List<TranscriptWord>>(job.Transcript.Words),
             };
 
             return Results.Ok(dto);

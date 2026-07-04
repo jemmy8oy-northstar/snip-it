@@ -2,7 +2,7 @@ using Balenthiran.Snipit.Abstractions.DataModels;
 
 namespace Balenthiran.Snipit.DataModels.Models;
 
-public class CutJobDto : ICutJob
+public class CutJob : ICutJob
 {
     public Guid Id { get; set; }
     public JobStatus Status { get; set; }
