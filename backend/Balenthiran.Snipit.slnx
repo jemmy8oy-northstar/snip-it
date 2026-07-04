@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="Balenthiran.Snipit.Abstractions/Balenthiran.Snipit.Abstractions.csproj" />
+  <Project Path="Balenthiran.Snipit.WebApi/Balenthiran.Snipit.WebApi.csproj" />
+  <Project Path="Balenthiran.Snipit.DataModels/Balenthiran.Snipit.DataModels.csproj" />
+  <Project Path="Balenthiran.Snipit.Database/Balenthiran.Snipit.Database.csproj" />
+  <Project Path="Balenthiran.Snipit.DomainModels/Balenthiran.Snipit.DomainModels.csproj" />
+  <Project Path="Balenthiran.Snipit.EntityModels/Balenthiran.Snipit.EntityModels.csproj" />
+  <Project Path="Balenthiran.Snipit.Services/Balenthiran.Snipit.Services.csproj" />
+</Solution>
