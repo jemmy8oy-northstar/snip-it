@@ -20,7 +20,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v2
         with:
-          app-id: 4063127
+          app-id: ${{ vars.GIT_OPS_APP_ID }} # Pulled from global Org variables
           private-key: ${{ secrets.GITOPS_APP_PRIVATE_KEY }} # Pulled from global Org secrets
 
       # --- 2. CHECKOUT CODE USING THE APP TOKEN ---
