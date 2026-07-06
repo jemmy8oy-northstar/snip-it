@@ -1,6 +1,6 @@
-using Balenthiran.Snipit.Abstractions.DataModels;
-using Balenthiran.Snipit.Abstractions.DomainModels;
 using Balenthiran.Snipit.Abstractions.Services;
+using Balenthiran.Snipit.DataModels.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Balenthiran.Snipit.WebApi.Routes;
 
@@ -10,17 +10,14 @@ public static class StatusRoutes
     {
         var group = parentGroup.MapGroup("/status");
 
-        group.MapGet("", async (IStatusService statusService) =>
-        {
-            var status = await statusService.GetSystemStatusAsync();
-            return Results.Ok(new {
-                version = status.Version,
-                friendlyStatus = status.GetFriendlyStatus(),
-                timestamp = status.LastUpdated
-            });
-        })
-        .WithName("GetStatus");
+        group.MapGet("", GetStatusAsync).WithName("GetStatus");
 
         return parentGroup;
+    }
+
+    private static async Task<Ok<SystemStatusResponse>> GetStatusAsync(IStatusService statusService)
+    {
+        var status = await statusService.GetSystemStatusAsync();
+        return TypedResults.Ok(new SystemStatusResponse(status.Version, status.GetFriendlyStatus(), status.LastUpdated));
     }
 }

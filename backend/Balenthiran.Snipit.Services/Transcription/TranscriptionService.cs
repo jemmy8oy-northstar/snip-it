@@ -1,3 +1,4 @@
+using AutoMapper;
 using Balenthiran.Snipit.Abstractions.DataModels;
 using Balenthiran.Snipit.Abstractions.DomainModels;
 using Balenthiran.Snipit.Abstractions.Services;
@@ -13,7 +14,8 @@ namespace Balenthiran.Snipit.Services.Transcription;
 public class TranscriptionService(
     AppDbContext dbContext,
     IFileStorageService fileStorage,
-    IBackgroundJobQueue jobQueue) : ITranscriptionService
+    IBackgroundJobQueue jobQueue,
+    IMapper mapper) : ITranscriptionService
 {
     private const string StorageFolder = "uploads";
 
@@ -39,7 +41,7 @@ public class TranscriptionService(
             return processor.ProcessAsync(jobId, ct);
         });
 
-        return ToDomain(entity);
+        return mapper.Map<DomainTranscriptionJob>(entity);
     }
 
     public async Task<IDomainTranscriptionJob?> GetJobAsync(Guid jobId, CancellationToken cancellationToken = default)
@@ -47,16 +49,6 @@ public class TranscriptionService(
         var entity = await dbContext.TranscriptionJobs.AsNoTracking()
             .FirstOrDefaultAsync(j => j.Id == jobId, cancellationToken);
 
-        return entity is null ? null : ToDomain(entity);
+        return entity is null ? null : mapper.Map<DomainTranscriptionJob>(entity);
     }
-
-    private static DomainTranscriptionJob ToDomain(TranscriptionJobEntity entity) => new()
-    {
-        Id = entity.Id,
-        Status = entity.Status,
-        Error = entity.Error,
-        CreatedAt = entity.CreatedAt,
-        SourceFilePath = entity.SourceFilePath,
-        Transcript = TranscriptJsonSerializer.Deserialize(entity.TranscriptJson),
-    };
 }

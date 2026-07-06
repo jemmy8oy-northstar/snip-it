@@ -1,3 +1,4 @@
+using AutoMapper;
 using Balenthiran.Snipit.Abstractions.DataModels;
 using Balenthiran.Snipit.Abstractions.DomainModels;
 using Balenthiran.Snipit.Abstractions.Services;
@@ -13,7 +14,8 @@ namespace Balenthiran.Snipit.Services.Cutting;
 public class CutService(
     AppDbContext dbContext,
     IKeepRangeCalculator keepRangeCalculator,
-    IBackgroundJobQueue jobQueue) : ICutService
+    IBackgroundJobQueue jobQueue,
+    IMapper mapper) : ICutService
 {
     public async Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, List<DomainTranscriptWord> words, CancellationToken cancellationToken = default)
     {
@@ -47,7 +49,7 @@ public class CutService(
             return processor.ProcessAsync(jobId, ct);
         });
 
-        return ToDomain(entity);
+        return mapper.Map<DomainCutJob>(entity);
     }
 
     public async Task<IDomainCutJob?> GetJobAsync(Guid jobId, CancellationToken cancellationToken = default)
@@ -55,18 +57,6 @@ public class CutService(
         var entity = await dbContext.CutJobs.AsNoTracking()
             .FirstOrDefaultAsync(j => j.Id == jobId, cancellationToken);
 
-        return entity is null ? null : ToDomain(entity);
+        return entity is null ? null : mapper.Map<DomainCutJob>(entity);
     }
-
-    private static DomainCutJob ToDomain(CutJobEntity entity) => new()
-    {
-        Id = entity.Id,
-        Status = entity.Status,
-        Error = entity.Error,
-        CreatedAt = entity.CreatedAt,
-        TranscriptionJobId = entity.TranscriptionJobId,
-        SourceFilePath = entity.SourceFilePath,
-        KeepRanges = KeepRangeJsonSerializer.Deserialize(entity.KeepRangesJson),
-        OutputFilePath = entity.OutputFilePath,
-    };
 }

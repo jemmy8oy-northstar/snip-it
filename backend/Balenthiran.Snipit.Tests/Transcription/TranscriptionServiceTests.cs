@@ -1,3 +1,4 @@
+using AutoMapper;
 using Balenthiran.Snipit.Abstractions.DataModels;
 using Balenthiran.Snipit.Abstractions.Services;
 using Balenthiran.Snipit.Database;
@@ -11,11 +12,12 @@ public class TranscriptionServiceTests
 {
     private readonly Mock<IFileStorageService> _fileStorage = new();
     private readonly Mock<IBackgroundJobQueue> _jobQueue = new();
+    private readonly IMapper _mapper = TestMapper.Create();
 
     private static AppDbContext CreateInMemoryDbContext() =>
         new(new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
-    private TranscriptionService CreateSut(AppDbContext dbContext) => new(dbContext, _fileStorage.Object, _jobQueue.Object);
+    private TranscriptionService CreateSut(AppDbContext dbContext) => new(dbContext, _fileStorage.Object, _jobQueue.Object, _mapper);
 
     [Fact]
     public async Task SubmitAsync_SavesFilePersistsPendingJobAndEnqueuesProcessing()

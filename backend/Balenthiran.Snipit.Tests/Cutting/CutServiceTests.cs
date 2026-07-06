@@ -1,3 +1,4 @@
+using AutoMapper;
 using Balenthiran.Snipit.Abstractions.DataModels;
 using Balenthiran.Snipit.Abstractions.DomainModels;
 using Balenthiran.Snipit.Abstractions.Services;
@@ -13,11 +14,12 @@ public class CutServiceTests
 {
     private readonly Mock<IBackgroundJobQueue> _jobQueue = new();
     private readonly KeepRangeCalculator _keepRangeCalculator = new(); // real: cheap pure logic, no need to mock
+    private readonly IMapper _mapper = TestMapper.Create();
 
     private static AppDbContext CreateInMemoryDbContext() =>
         new(new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
-    private CutService CreateSut(AppDbContext dbContext) => new(dbContext, _keepRangeCalculator, _jobQueue.Object);
+    private CutService CreateSut(AppDbContext dbContext) => new(dbContext, _keepRangeCalculator, _jobQueue.Object, _mapper);
 
     private static DomainTranscriptWord Word(double s, double e, bool kept) => new() { Text = "w", Start = s, End = e, Kept = kept };
 
