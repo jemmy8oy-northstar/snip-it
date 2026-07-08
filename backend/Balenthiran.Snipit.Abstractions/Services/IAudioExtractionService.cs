@@ -5,9 +5,3 @@ public interface IAudioExtractionService
 {
     Task<string> ExtractAudioAsync(string sourceFilePath, string outputWavPath, CancellationToken cancellationToken = default);
 }
-
-/// <summary>Builds the FFmpeg argument list for audio extraction. Pure — no process execution.</summary>
-public interface IFfmpegAudioExtractionArgumentsBuilder
-{
-    string[] Build(string sourceFilePath, string outputWavPath);
-}

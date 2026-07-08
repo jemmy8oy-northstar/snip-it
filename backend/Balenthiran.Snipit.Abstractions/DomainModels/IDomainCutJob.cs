@@ -15,5 +15,3 @@ public interface IDomainCutJob : ICutJob
     /// <summary>Populated once the job reaches <see cref="JobStatus.Completed"/>.</summary>
     string? OutputFilePath { get; set; }
 }
-
-public record struct DomainKeepRange(double Start, double End);

@@ -12,9 +12,3 @@ public interface ITranscriptionService
     Task<IDomainTranscriptionJob> SubmitAsync(Stream fileStream, string fileName, CancellationToken cancellationToken = default);
     Task<IDomainTranscriptionJob?> GetJobAsync(Guid jobId, CancellationToken cancellationToken = default);
 }
-
-/// <summary>Runs the actual transcription pipeline (audio extraction + Groq call) for one job.</summary>
-public interface ITranscriptionJobProcessor
-{
-    Task ProcessAsync(Guid jobId, CancellationToken cancellationToken = default);
-}

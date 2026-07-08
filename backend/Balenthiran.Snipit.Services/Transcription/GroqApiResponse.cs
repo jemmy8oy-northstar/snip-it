@@ -15,30 +15,3 @@ public class GroqApiResponse
     [JsonPropertyName("words")]
     public List<GroqApiWord> Words { get; set; } = [];
 }
-
-public class GroqApiSegment
-{
-    [JsonPropertyName("id")]
-    public int Id { get; set; }
-
-    [JsonPropertyName("start")]
-    public double Start { get; set; }
-
-    [JsonPropertyName("end")]
-    public double End { get; set; }
-
-    [JsonPropertyName("text")]
-    public string Text { get; set; } = string.Empty;
-}
-
-public class GroqApiWord
-{
-    [JsonPropertyName("word")]
-    public string Word { get; set; } = string.Empty;
-
-    [JsonPropertyName("start")]
-    public double Start { get; set; }
-
-    [JsonPropertyName("end")]
-    public double End { get; set; }
-}

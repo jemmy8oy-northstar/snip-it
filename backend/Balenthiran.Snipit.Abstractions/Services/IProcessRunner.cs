@@ -5,5 +5,3 @@ public interface IProcessRunner
 {
     Task<ProcessResult> RunAsync(string fileName, string[] arguments, CancellationToken cancellationToken = default);
 }
-
-public record ProcessResult(int ExitCode, string StandardOutput, string StandardError);
