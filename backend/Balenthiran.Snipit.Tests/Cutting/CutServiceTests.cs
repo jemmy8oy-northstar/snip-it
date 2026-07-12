@@ -3,6 +3,7 @@ using Balenthiran.Snipit.Abstractions.DataModels;
 using Balenthiran.Snipit.Abstractions.DomainModels;
 using Balenthiran.Snipit.Abstractions.Services;
 using Balenthiran.Snipit.Database;
+using Balenthiran.Snipit.DomainModels.Models;
 using Balenthiran.Snipit.EntityModels;
 using Balenthiran.Snipit.Services.Cutting;
 using Microsoft.EntityFrameworkCore;
@@ -29,7 +30,10 @@ public class CutServiceTests
         await using var dbContext = CreateInMemoryDbContext();
         var transcriptionJob = new TranscriptionJobEntity
         {
-            Id = Guid.NewGuid(), Status = JobStatus.Completed, CreatedAt = DateTime.UtcNow, SourceFilePath = "uploads/x.mp4",
+            Id = Guid.NewGuid(),
+            Status = JobStatus.Completed,
+            CreatedAt = DateTime.UtcNow,
+            SourceFilePath = "uploads/x.mp4",
         };
         dbContext.TranscriptionJobs.Add(transcriptionJob);
         await dbContext.SaveChangesAsync();
@@ -59,7 +63,10 @@ public class CutServiceTests
         await using var dbContext = CreateInMemoryDbContext();
         var transcriptionJob = new TranscriptionJobEntity
         {
-            Id = Guid.NewGuid(), Status = JobStatus.Completed, CreatedAt = DateTime.UtcNow, SourceFilePath = "uploads/x.mp4",
+            Id = Guid.NewGuid(),
+            Status = JobStatus.Completed,
+            CreatedAt = DateTime.UtcNow,
+            SourceFilePath = "uploads/x.mp4",
         };
         dbContext.TranscriptionJobs.Add(transcriptionJob);
         await dbContext.SaveChangesAsync();

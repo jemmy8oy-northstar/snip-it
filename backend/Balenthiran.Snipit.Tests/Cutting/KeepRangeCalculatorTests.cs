@@ -1,4 +1,5 @@
 using Balenthiran.Snipit.Abstractions.DomainModels;
+using Balenthiran.Snipit.DomainModels.Models;
 using Balenthiran.Snipit.Services.Cutting;
 
 namespace Balenthiran.Snipit.Tests.Cutting;

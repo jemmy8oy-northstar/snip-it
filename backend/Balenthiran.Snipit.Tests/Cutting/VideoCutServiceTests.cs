@@ -1,6 +1,8 @@
 using Balenthiran.Snipit.Abstractions.DomainModels;
 using Balenthiran.Snipit.Abstractions.Services;
+using Balenthiran.Snipit.DomainModels.Models;
 using Balenthiran.Snipit.Services.Cutting;
+using Balenthiran.Snipit.Services.Infrastructure;
 using Moq;
 
 namespace Balenthiran.Snipit.Tests.Cutting;

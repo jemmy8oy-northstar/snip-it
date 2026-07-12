@@ -1,6 +1,8 @@
-namespace Balenthiran.Snipit.Abstractions.DomainModels;
+using Balenthiran.Snipit.Abstractions.DomainModels;
 
-public class DomainTranscriptWord
+namespace Balenthiran.Snipit.DomainModels.Models;
+
+public class DomainTranscriptWord : IDomainTranscriptWord
 {
     public string Text { get; set; } = string.Empty;
     public double Start { get; set; }

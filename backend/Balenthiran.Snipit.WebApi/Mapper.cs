@@ -1,6 +1,7 @@
 using AutoMapper;
 using Balenthiran.Snipit.Abstractions.DomainModels;
 using Balenthiran.Snipit.DataModels.Models;
+using Balenthiran.Snipit.DomainModels.Models;
 
 namespace Balenthiran.Snipit.WebApi;
 
@@ -13,7 +14,8 @@ public class Mapper : Profile
         CreateMap<IDomainTranscriptionJob, TranscriptionJob>();
         CreateMap<IDomainCutJob, CutJob>();
         CreateMap<IDomainCutJob, CutJobResponse>();
-        CreateMap<DomainTranscriptSegment, TranscriptSegment>();
-        CreateMap<DomainTranscriptWord, TranscriptWord>().ReverseMap();
+        CreateMap<IDomainTranscriptSegment, TranscriptSegment>();
+        CreateMap<IDomainTranscriptWord, TranscriptWord>();
+        CreateMap<TranscriptWord, DomainTranscriptWord>();
     }
 }

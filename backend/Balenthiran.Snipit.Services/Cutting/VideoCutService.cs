@@ -5,7 +5,7 @@ namespace Balenthiran.Snipit.Services.Cutting;
 
 public class VideoCutService(IFfmpegCutArgumentsBuilder argumentsBuilder, IProcessRunner processRunner) : IVideoCutService
 {
-    public async Task<string> CutAsync(string sourceFilePath, IReadOnlyList<DomainKeepRange> keepRanges, string outputFilePath, CancellationToken cancellationToken = default)
+    public async Task<string> CutAsync(string sourceFilePath, IReadOnlyList<IDomainKeepRange> keepRanges, string outputFilePath, CancellationToken cancellationToken = default)
     {
         var args = argumentsBuilder.Build(sourceFilePath, keepRanges, outputFilePath);
         var result = await processRunner.RunAsync("ffmpeg", args, cancellationToken);

@@ -1,6 +1,8 @@
-namespace Balenthiran.Snipit.Abstractions.DomainModels;
+using Balenthiran.Snipit.Abstractions.DomainModels;
 
-public class DomainTranscriptSegment
+namespace Balenthiran.Snipit.DomainModels.Models;
+
+public class DomainTranscriptSegment : IDomainTranscriptSegment
 {
     public int Index { get; set; }
     public double Start { get; set; }

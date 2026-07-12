@@ -2,6 +2,7 @@ using Balenthiran.Snipit.Abstractions.DataModels;
 using Balenthiran.Snipit.Abstractions.DomainModels;
 using Balenthiran.Snipit.Abstractions.Services;
 using Balenthiran.Snipit.Database;
+using Balenthiran.Snipit.DomainModels.Models;
 using Balenthiran.Snipit.EntityModels;
 using Balenthiran.Snipit.Services.Transcription;
 using Microsoft.EntityFrameworkCore;

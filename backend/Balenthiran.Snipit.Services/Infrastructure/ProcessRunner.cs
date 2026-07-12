@@ -6,7 +6,7 @@ namespace Balenthiran.Snipit.Services.Infrastructure;
 
 public class ProcessRunner : IProcessRunner
 {
-    public async Task<ProcessResult> RunAsync(string fileName, string[] arguments, CancellationToken cancellationToken = default)
+    public async Task<IProcessResult> RunAsync(string fileName, string[] arguments, CancellationToken cancellationToken = default)
     {
         var startInfo = new ProcessStartInfo
         {

@@ -8,6 +8,6 @@ namespace Balenthiran.Snipit.Abstractions.Services;
 /// </summary>
 public interface ICutService
 {
-    Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, List<DomainTranscriptWord> words, CancellationToken cancellationToken = default);
+    Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, IReadOnlyList<IDomainTranscriptWord> words, CancellationToken cancellationToken = default);
     Task<IDomainCutJob?> GetJobAsync(Guid jobId, CancellationToken cancellationToken = default);
 }

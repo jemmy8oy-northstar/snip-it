@@ -10,7 +10,7 @@ public interface IDomainCutJob : ICutJob
     string SourceFilePath { get; set; }
 
     /// <summary>Kept word ranges, computed from the submitted cut request. Seconds, in source-video time.</summary>
-    List<DomainKeepRange> KeepRanges { get; set; }
+    IReadOnlyList<IDomainKeepRange> KeepRanges { get; }
 
     /// <summary>Populated once the job reaches <see cref="JobStatus.Completed"/>.</summary>
     string? OutputFilePath { get; set; }

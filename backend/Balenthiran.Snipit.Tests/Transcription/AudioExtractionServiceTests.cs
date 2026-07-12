@@ -1,4 +1,5 @@
 using Balenthiran.Snipit.Abstractions.Services;
+using Balenthiran.Snipit.Services.Infrastructure;
 using Balenthiran.Snipit.Services.Transcription;
 using Moq;
 

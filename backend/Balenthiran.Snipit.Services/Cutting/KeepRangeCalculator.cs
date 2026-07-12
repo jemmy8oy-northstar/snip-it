@@ -1,5 +1,6 @@
 using Balenthiran.Snipit.Abstractions.DomainModels;
 using Balenthiran.Snipit.Abstractions.Services;
+using Balenthiran.Snipit.DomainModels.Models;
 
 namespace Balenthiran.Snipit.Services.Cutting;
 
@@ -10,7 +11,7 @@ namespace Balenthiran.Snipit.Services.Cutting;
 /// </summary>
 public class KeepRangeCalculator : IKeepRangeCalculator
 {
-    public List<DomainKeepRange> Calculate(IReadOnlyList<DomainTranscriptWord> words)
+    public IReadOnlyList<IDomainKeepRange> Calculate(IReadOnlyList<IDomainTranscriptWord> words)
     {
         var ranges = new List<DomainKeepRange>();
 

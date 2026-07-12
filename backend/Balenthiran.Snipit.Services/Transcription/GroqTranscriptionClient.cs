@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Balenthiran.Snipit.Abstractions.DomainModels;
 using Balenthiran.Snipit.Abstractions.Services;
+using Balenthiran.Snipit.DomainModels.Models;
 using Microsoft.Extensions.Options;
 
 namespace Balenthiran.Snipit.Services.Transcription;
@@ -11,7 +12,7 @@ public class GroqTranscriptionClient(HttpClient httpClient, IOptions<GroqOptions
 {
     private readonly GroqOptions _options = options.Value;
 
-    public async Task<GroqTranscriptionResult> TranscribeAsync(Stream audioStream, string fileName, CancellationToken cancellationToken = default)
+    public async Task<IGroqTranscriptionResult> TranscribeAsync(Stream audioStream, string fileName, CancellationToken cancellationToken = default)
     {
         using var content = new MultipartFormDataContent();
 

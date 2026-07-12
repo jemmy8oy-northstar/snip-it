@@ -9,5 +9,5 @@ namespace Balenthiran.Snipit.Abstractions.Services;
 /// </summary>
 public interface IFfmpegCutArgumentsBuilder
 {
-    string[] Build(string sourceFilePath, IReadOnlyList<DomainKeepRange> keepRanges, string outputFilePath);
+    string[] Build(string sourceFilePath, IReadOnlyList<IDomainKeepRange> keepRanges, string outputFilePath);
 }

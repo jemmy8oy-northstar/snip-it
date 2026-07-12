@@ -14,7 +14,7 @@ public class FfmpegCutArgumentsBuilder : IFfmpegCutArgumentsBuilder
 {
     private const double FadeSeconds = 0.02;
 
-    public string[] Build(string sourceFilePath, IReadOnlyList<DomainKeepRange> keepRanges, string outputFilePath)
+    public string[] Build(string sourceFilePath, IReadOnlyList<IDomainKeepRange> keepRanges, string outputFilePath)
     {
         if (keepRanges.Count == 0)
         {
@@ -37,7 +37,7 @@ public class FfmpegCutArgumentsBuilder : IFfmpegCutArgumentsBuilder
         ];
     }
 
-    private static string BuildSingleRangeFilter(DomainKeepRange range)
+    private static string BuildSingleRangeFilter(IDomainKeepRange range)
     {
         var duration = range.End - range.Start;
         var fadeOutStart = FormatFixed(duration - FadeSeconds);
@@ -47,7 +47,7 @@ public class FfmpegCutArgumentsBuilder : IFfmpegCutArgumentsBuilder
                $"afade=t=in:st=0:d={FormatFixed(FadeSeconds)},afade=t=out:st={fadeOutStart}:d={FormatFixed(FadeSeconds)}[outa]";
     }
 
-    private static string BuildMultiRangeFilter(IReadOnlyList<DomainKeepRange> ranges)
+    private static string BuildMultiRangeFilter(IReadOnlyList<IDomainKeepRange> ranges)
     {
         var parts = new List<string>();
         var concatStreams = "";

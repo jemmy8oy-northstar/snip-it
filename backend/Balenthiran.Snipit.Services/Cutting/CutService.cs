@@ -17,7 +17,7 @@ public class CutService(
     IBackgroundJobQueue jobQueue,
     IMapper mapper) : ICutService
 {
-    public async Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, List<DomainTranscriptWord> words, CancellationToken cancellationToken = default)
+    public async Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, IReadOnlyList<IDomainTranscriptWord> words, CancellationToken cancellationToken = default)
     {
         var transcriptionJob = await dbContext.TranscriptionJobs.AsNoTracking()
             .FirstOrDefaultAsync(j => j.Id == transcriptionJobId, cancellationToken)

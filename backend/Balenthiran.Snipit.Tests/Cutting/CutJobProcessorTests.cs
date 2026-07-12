@@ -2,6 +2,7 @@ using Balenthiran.Snipit.Abstractions.DataModels;
 using Balenthiran.Snipit.Abstractions.DomainModels;
 using Balenthiran.Snipit.Abstractions.Services;
 using Balenthiran.Snipit.Database;
+using Balenthiran.Snipit.DomainModels.Models;
 using Balenthiran.Snipit.EntityModels;
 using Balenthiran.Snipit.Services.Cutting;
 using Microsoft.EntityFrameworkCore;
@@ -46,7 +47,7 @@ public class CutJobProcessorTests
             _fileStorage.Setup(x => x.GetFullPath("uploads/x.mp4")).Returns(sourcePath);
             _fileStorage.Setup(x => x.GetFullPath(It.Is<string>(s => s.StartsWith("exports/")))).Returns(outputPath);
             _videoCutService
-                .Setup(x => x.CutAsync(sourcePath, It.Is<List<DomainKeepRange>>(r => r.Count == 1), outputPath, It.IsAny<CancellationToken>()))
+                .Setup(x => x.CutAsync(sourcePath, It.Is<IReadOnlyList<IDomainKeepRange>>(r => r.Count == 1), outputPath, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(outputPath);
 
             await CreateSut(dbContext).ProcessAsync(job.Id);
@@ -82,7 +83,7 @@ public class CutJobProcessorTests
 
             _fileStorage.Setup(x => x.GetFullPath(It.IsAny<string>())).Returns<string>(s => Path.Combine(root, s));
             _videoCutService
-                .Setup(x => x.CutAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<DomainKeepRange>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.CutAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<IDomainKeepRange>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new InvalidOperationException("ffmpeg exploded"));
 
             await CreateSut(dbContext).ProcessAsync(job.Id);

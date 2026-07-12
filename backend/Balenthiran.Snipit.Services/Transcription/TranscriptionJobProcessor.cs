@@ -42,8 +42,12 @@ public class TranscriptionJobProcessor(
             var transcript = new DomainTranscript
             {
                 DurationSeconds = result.DurationSeconds,
-                Segments = result.Segments,
-                Words = result.Words,
+                Segments = result.Segments
+                    .Select(s => new DomainTranscriptSegment { Index = s.Index, Start = s.Start, End = s.End, Text = s.Text })
+                    .ToList(),
+                Words = result.Words
+                    .Select(w => new DomainTranscriptWord { Text = w.Text, Start = w.Start, End = w.End, Kept = w.Kept })
+                    .ToList(),
             };
 
             entity.TranscriptJson = TranscriptJsonSerializer.Serialize(transcript);
