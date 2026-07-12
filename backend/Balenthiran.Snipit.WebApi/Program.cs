@@ -30,6 +30,8 @@ app.UseHttpsRedirection();
 
 app.MapGroup("/api")
     .MapStatusRoutes()
+    .MapTranscriptionRoutes()
+    .MapCutRoutes()
     .WithOpenApi();
 
 app.Run();

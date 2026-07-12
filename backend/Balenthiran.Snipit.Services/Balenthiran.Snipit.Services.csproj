@@ -4,10 +4,15 @@
     <ProjectReference Include="../Balenthiran.Snipit.DomainModels/Balenthiran.Snipit.DomainModels.csproj" />
     <ProjectReference Include="../Balenthiran.Snipit.Abstractions/Balenthiran.Snipit.Abstractions.csproj" />
     <ProjectReference Include="../Balenthiran.Snipit.Database/Balenthiran.Snipit.Database.csproj" />
+    <ProjectReference Include="../Balenthiran.Snipit.EntityModels/Balenthiran.Snipit.EntityModels.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="16.0.0" />
+    <PackageReference Include="AutoMapper" Version="16.1.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.2" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -15,5 +20,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Balenthiran.Snipit.Tests" />
+  </ItemGroup>
 
 </Project>
