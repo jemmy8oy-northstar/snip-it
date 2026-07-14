@@ -1,0 +1,255 @@
+/* Theme-aware port of review.html's editor chrome — reuses the app's
+   --bg-card/--text-primary/--glass-border variables so it matches both
+   light and dark mode, instead of review.html's hardcoded dark palette. */
+
+.editor {
+  --editor-cut: var(--text-secondary);
+  --editor-accent: #10b981;
+  --editor-accent-bg: rgba(16, 185, 129, 0.12);
+  --editor-danger: #ef4444;
+  --editor-active: #fde047;
+  --editor-warn: #f59e0b;
+
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.editor-left {
+  width: 340px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editor-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 12px;
+  display: block;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+}
+
+.editor-btn {
+  padding: 6px 11px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.editor-btn:hover {
+  color: var(--text-primary);
+}
+.editor-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.editor-btn-preview {
+  width: 100%;
+  padding: 9px;
+  border-radius: 8px;
+  border: none;
+  background: var(--editor-accent);
+  color: #04120b;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.editor-btn-preview.playing {
+  background: var(--editor-danger);
+  color: #fff;
+}
+.editor-btn-preview:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.editor-buffer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.editor-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 14px;
+  padding: 10px;
+}
+.editor-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+.editor-stat-value {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.editor-json textarea {
+  width: 100%;
+  min-height: 140px;
+  font-family: 'SF Mono', 'Fira Code', Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--editor-accent);
+  background: var(--bg-page, transparent);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 8px;
+  resize: vertical;
+}
+
+.editor-transcript {
+  flex: 1;
+  min-width: 320px;
+  padding: 16px 20px;
+}
+
+.editor-segment {
+  margin-bottom: 22px;
+}
+
+.editor-segment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.editor-seg-play {
+  font-size: 9px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.editor-seg-play:hover {
+  background: var(--editor-accent-bg);
+  border-color: var(--editor-accent);
+  color: var(--editor-accent);
+}
+
+.editor-seg-time {
+  font-size: 11px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--text-secondary);
+}
+.editor-seg-time:hover {
+  color: var(--editor-accent);
+}
+.editor-seg-time.has-override {
+  color: var(--editor-warn);
+}
+
+.editor-seg-toggle {
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+}
+
+.editor-words {
+  line-height: 2.4;
+  font-size: 14px;
+  user-select: none;
+}
+
+.editor-word {
+  display: inline;
+  cursor: pointer;
+  padding: 3px 2px;
+  border-radius: 3px;
+  color: var(--text-primary);
+}
+.editor-word::after {
+  content: ' ';
+}
+.editor-word.cut {
+  color: var(--editor-cut);
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+.editor-word:hover {
+  background: var(--glass-hover-bg);
+}
+.editor-word.active {
+  background: var(--editor-active);
+  color: #000;
+  border-radius: 2px;
+}
+
+.editor-scrubber {
+  position: fixed;
+  z-index: 1000;
+  background: var(--bg-page);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  min-width: 220px;
+}
+
+.editor-scrubber-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.editor-scrubber-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  width: 32px;
+  flex-shrink: 0;
+}
+.editor-scrubber-input {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  padding: 3px 6px;
+}
+.editor-scrubber-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.editor-empty {
+  padding: 24px;
+  color: var(--text-secondary);
+  text-align: center;
+}
