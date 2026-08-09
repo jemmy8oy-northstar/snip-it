@@ -13,6 +13,12 @@ frontend/.env
 node_modules/
 frontend/dist/
 
+# Playwright e2e — generated reports/results (screenshots in e2e/screenshots/ are kept)
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/playwright/.cache/
+
 # OS
 .DS_Store
 Thumbs.db
