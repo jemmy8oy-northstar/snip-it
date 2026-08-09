@@ -20,10 +20,11 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'list',
   use: {
-    // Must carry Vite's `base` (/snipit/) — without the trailing segment every
-    // navigation lands on Vite's "configured with a public base URL" hint page
-    // instead of the app. Specs therefore navigate with RELATIVE paths ('./',
-    // './editor'); a leading slash would discard the base again.
+    // Must carry Vite's `base` (/snipit/). Vite's dev server redirects bare '/'
+    // to the base, so the landing spec happened to work without it — but
+    // '/editor' landed on Vite's "server is configured with a public base URL"
+    // hint page instead of the app. Specs therefore navigate with RELATIVE
+    // paths ('./', './editor'); a leading slash would discard the base again.
     baseURL: 'http://localhost:4173/snipit/',
     trace: 'on-first-retry',
   },
