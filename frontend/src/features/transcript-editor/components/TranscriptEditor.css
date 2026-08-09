@@ -14,6 +14,14 @@
   gap: 20px;
   align-items: flex-start;
   flex-wrap: wrap;
+
+  /* The navbar is `position: fixed; top: 24px` and this page is not wrapped in
+     .container, so without these the first transcript segment sat *under* the
+     nav pill and the left rail was flush against the viewport edge. Mirrors
+     .container's 1200px/24px frame. */
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 120px 24px 0;
 }
 
 .editor-left {

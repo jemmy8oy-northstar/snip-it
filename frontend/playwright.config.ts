@@ -20,7 +20,11 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'list',
   use: {
-    baseURL: 'http://localhost:4173',
+    // Must carry Vite's `base` (/snipit/) — without the trailing segment every
+    // navigation lands on Vite's "configured with a public base URL" hint page
+    // instead of the app. Specs therefore navigate with RELATIVE paths ('./',
+    // './editor'); a leading slash would discard the base again.
+    baseURL: 'http://localhost:4173/snipit/',
     trace: 'on-first-retry',
   },
   projects: [
@@ -28,7 +32,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev -- --port 4173 --strictPort',
-    url: 'http://localhost:4173',
+    url: 'http://localhost:4173/snipit/',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
