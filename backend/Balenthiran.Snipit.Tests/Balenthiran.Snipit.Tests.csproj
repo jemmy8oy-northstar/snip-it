@@ -26,6 +26,7 @@
     <ProjectReference Include="../Balenthiran.Snipit.DomainModels/Balenthiran.Snipit.DomainModels.csproj" />
     <ProjectReference Include="../Balenthiran.Snipit.EntityModels/Balenthiran.Snipit.EntityModels.csproj" />
     <ProjectReference Include="../Balenthiran.Snipit.Services/Balenthiran.Snipit.Services.csproj" />
+    <ProjectReference Include="../Balenthiran.Snipit.WebApi/Balenthiran.Snipit.WebApi.csproj" />
   </ItemGroup>
 
 </Project>

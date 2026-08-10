@@ -2,8 +2,8 @@ namespace Balenthiran.Snipit.DataModels.Models;
 
 public class Transcript
 {
-    public Guid TranscriptionJobId { get; set; }
-    public double DurationSeconds { get; set; }
-    public List<TranscriptSegment> Segments { get; set; } = [];
-    public List<TranscriptWord> Words { get; set; } = [];
+    public required Guid TranscriptionJobId { get; set; }
+    public required double DurationSeconds { get; set; }
+    public required List<TranscriptSegment> Segments { get; set; }
+    public required List<TranscriptWord> Words { get; set; }
 }
