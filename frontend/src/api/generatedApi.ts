@@ -89,42 +89,42 @@ export type SystemStatusResponse = {
   friendlyStatus: string;
   timestamp: string;
 };
-export type JobStatus = number;
+export type JobStatus = "Pending" | "Processing" | "Completed" | "Failed";
 export type TranscriptionJob = {
-  id?: string;
-  status?: JobStatus;
-  error?: null | string;
-  createdAt?: string;
+  id: string;
+  status: JobStatus;
+  error: null | string;
+  createdAt: string;
 };
 export type IFormFile = Blob;
 export type TranscriptSegment = {
-  index?: number | string;
-  start?: number | string;
-  end?: number | string;
-  text?: string;
+  index: number;
+  start: number;
+  end: number;
+  text: string;
 };
 export type TranscriptWord = {
-  text?: string;
-  start?: number | string;
-  end?: number | string;
-  kept?: boolean;
+  text: string;
+  start: number;
+  end: number;
+  kept: boolean;
 };
 export type Transcript = {
-  transcriptionJobId?: string;
-  durationSeconds?: number | string;
-  segments?: TranscriptSegment[];
-  words?: TranscriptWord[];
+  transcriptionJobId: string;
+  durationSeconds: number;
+  segments: TranscriptSegment[];
+  words: TranscriptWord[];
 };
 export type CutJobResponse = {
-  downloadUrl?: null | string;
-  id?: string;
-  status?: JobStatus;
-  error?: null | string;
-  createdAt?: string;
+  downloadUrl: null | string;
+  id: string;
+  status: JobStatus;
+  error: null | string;
+  createdAt: string;
 };
 export type CutRequest = {
-  transcriptionJobId?: string;
-  words?: TranscriptWord[];
+  transcriptionJobId: string;
+  words: TranscriptWord[];
 };
 export const {
   useGetStatusQuery,

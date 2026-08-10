@@ -4,30 +4,24 @@ import type { TranscriptDto, TranscriptSegmentDto, TranscriptWordDto } from '../
 /**
  * Adapts the backend's `Transcript` to the shape the editor works in.
  *
- * Two real gaps between the contract and the editor's model, both handled here so
- * nothing downstream has to know about them:
- *
- * 1. **`wordIndices` does not exist on the wire.** The backend's `TranscriptSegment`
- *    carries only `index`/`start`/`end`/`text`, but the editor needs to know which
- *    words belong to which segment (segment toggling, and the scrubber, which edits a
- *    segment's boundary words). We derive membership from the timestamps that both
- *    words and segments come back with.
- * 2. **Numbers arrive as `number | string`.** OpenAPI 3.1 types a C# `double` as
- *    `["number","string"]` so it can also carry "NaN"/"Infinity", and every property is
- *    optional because none of the C# DTOs use `required`.
+ * One real gap between the contract and the editor's model: **`wordIndices` does not exist
+ * on the wire.** The backend's `TranscriptSegment` carries only `index`/`start`/`end`/`text`,
+ * but the editor needs to know which words belong to which segment (segment toggling, and the
+ * scrubber, which edits a segment's boundary words). We derive membership from the timestamps
+ * that both words and segments come back with.
  */
 export function toEditorTranscript(dto: ApiTranscript): TranscriptDto {
-  const words: TranscriptWordDto[] = (dto.words ?? []).map((word) => ({
-    text: word.text ?? '',
-    start: toFiniteNumber(word.start),
-    end: toFiniteNumber(word.end),
+  const words: TranscriptWordDto[] = dto.words.map((word) => ({
+    text: word.text,
+    start: word.start,
+    end: word.end,
   }));
 
   const segments = withWordIndices(
-    (dto.segments ?? []).map((segment) => ({
-      start: toFiniteNumber(segment.start),
-      end: toFiniteNumber(segment.end),
-      text: segment.text ?? '',
+    dto.segments.map((segment) => ({
+      start: segment.start,
+      end: segment.end,
+      text: segment.text,
       wordIndices: [] as number[],
     })),
     words,
@@ -36,7 +30,7 @@ export function toEditorTranscript(dto: ApiTranscript): TranscriptDto {
   // A transcript with no duration would make every buffer/stats calculation collapse to
   // zero, so fall back to where the words actually stop.
   const lastWordEnd = words.length ? words[words.length - 1].end : 0;
-  const durationSeconds = toFiniteNumber(dto.durationSeconds) || lastWordEnd;
+  const durationSeconds = dto.durationSeconds || lastWordEnd;
 
   return { durationSeconds, words, segments };
 }
@@ -95,10 +89,4 @@ function indexOfSegmentFor(segments: TranscriptSegmentDto[], word: TranscriptWor
     }
   });
   return nearest;
-}
-
-/** `number | string | undefined` → a usable number. Anything non-finite becomes 0. */
-function toFiniteNumber(value: number | string | undefined): number {
-  const parsed = typeof value === 'string' ? Number(value) : value;
-  return typeof parsed === 'number' && Number.isFinite(parsed) ? parsed : 0;
 }
