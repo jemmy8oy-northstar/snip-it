@@ -9,6 +9,12 @@ const JOB_STATUS_COMPLETED = 2;
 
 const MOCK_CUT_JOB_ID = '22222222-2222-2222-2222-222222222222';
 
+const completedTranscriptionJob = {
+  id: MOCK_TRANSCRIPTION_JOB_ID,
+  status: JOB_STATUS_COMPLETED,
+  createdAt: '2026-01-01T00:00:00Z',
+};
+
 const completedCutJob = {
   id: MOCK_CUT_JOB_ID,
   status: JOB_STATUS_COMPLETED,
@@ -32,6 +38,15 @@ export async function mockApi(page: Page): Promise<void> {
     route.fulfill({ json: { status: 'Healthy', service: 'snip-it', version: '0.1.0' } }),
   );
 
+  // The upload (multipart POST) and the job poll. Both answer Completed straight away so the
+  // panel navigates without the suite having to wait out a polling interval.
+  await page.route('**/api/transcriptions', (route) =>
+    route.fulfill({ json: completedTranscriptionJob }),
+  );
+  await page.route('**/api/transcriptions/*', (route) =>
+    route.fulfill({ json: completedTranscriptionJob }),
+  );
+
   await page.route('**/api/transcriptions/*/transcript', (route) =>
     route.fulfill({ json: mockApiTranscript }),
   );
@@ -50,3 +65,5 @@ export async function mockApi(page: Page): Promise<void> {
 
 /** The editor route these mocks are wired for. */
 export const EDITOR_PATH = `./editor/${MOCK_TRANSCRIPTION_JOB_ID}`;
+
+export { MOCK_TRANSCRIPTION_JOB_ID };

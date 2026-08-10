@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import type { AppDispatch } from '../../../store';
-import { useGetTranscriptQuery, useSubmitCutMutation } from '../../../api/generatedApi';
+import {
+  useGetCutJobQuery,
+  useGetTranscriptQuery,
+  useSubmitCutMutation,
+} from '../../../api/generatedApi';
 import { toEditorTranscript } from '../api/transcriptAdapter';
 import { buildCutRequest } from '../api/cutRequest';
 import { describeJobStatus } from '../api/jobStatus';
@@ -23,26 +27,22 @@ import {
 } from '../editorSlice';
 import { usePreviewPlayback } from '../hooks/usePreviewPlayback';
 import { useActiveWordIndex } from '../hooks/useActiveWordIndex';
-import { useCutJobProgress } from '../hooks/useCutJobProgress';
+import { usePolledJob } from '../hooks/usePolledJob';
 import { TranscriptWords } from './TranscriptWords';
 import { ScrubberPopover, type ScrubberTarget } from './ScrubberPopover';
 import { EditorStats } from './EditorStats';
 import { EditListPanel } from './EditListPanel';
+import { TranscriptUploadPanel } from './TranscriptUploadPanel';
 import type { KeptRange } from '../types';
 import './TranscriptEditor.css';
 
 export function TranscriptEditorPage() {
   const { transcriptionJobId } = useParams<{ transcriptionJobId: string }>();
 
-  // The route is /editor/:transcriptionJobId; the bare /editor link in the navbar has no
-  // job to open until there's an upload flow to create one.
+  // The bare /editor link in the navbar has no job to open, so it is the way in: upload a
+  // file, and the panel navigates to /editor/:transcriptionJobId once transcription finishes.
   if (!transcriptionJobId) {
-    return (
-      <div className="editor-empty">
-        No transcript selected. Open <code>/editor/&lt;transcription-job-id&gt;</code> for a job you
-        have already submitted to <code>POST /api/transcriptions</code>.
-      </div>
-    );
+    return <TranscriptUploadPanel />;
   }
 
   return <TranscriptEditor transcriptionJobId={transcriptionJobId} />;
@@ -53,8 +53,7 @@ function TranscriptEditor({ transcriptionJobId }: { transcriptionJobId: string }
   const { data, isLoading, isError, error } = useGetTranscriptQuery({ id: transcriptionJobId });
   const [submitCut, { isLoading: isSubmitting, data: submittedJob, isError: isSubmitError }] =
     useSubmitCutMutation();
-  const polledJob = useCutJobProgress(submittedJob?.id);
-  const cutJob = polledJob ?? submittedJob;
+  const cutJob = usePolledJob(useGetCutJobQuery, submittedJob?.id) ?? submittedJob;
 
   const words = useSelector(selectWords);
   const segments = useSelector(selectSegments);
