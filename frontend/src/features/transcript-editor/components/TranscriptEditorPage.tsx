@@ -7,6 +7,7 @@ import {
   useGetTranscriptQuery,
   useSubmitCutMutation,
 } from '../../../api/generatedApi';
+import { apiUrl } from '../../../api/apiBase';
 import { toEditorTranscript } from '../api/transcriptAdapter';
 import { buildCutRequest } from '../api/cutRequest';
 import { describeJobStatus } from '../api/jobStatus';
@@ -126,7 +127,7 @@ function TranscriptEditor({ transcriptionJobId }: { transcriptionJobId: string }
         <video
           ref={videoRef}
           className="editor-video"
-          src={`/api/transcriptions/${transcriptionJobId}/source`}
+          src={apiUrl(`/api/transcriptions/${transcriptionJobId}/source`)}
           controls
         />
 
