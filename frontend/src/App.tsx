@@ -17,6 +17,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/editor" element={<TranscriptEditorPage />} />
+              <Route path="/editor/:transcriptionJobId" element={<TranscriptEditorPage />} />
             </Routes>
           </main>
           <footer className="container" style={{

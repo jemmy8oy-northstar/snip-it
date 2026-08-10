@@ -1,5 +1,7 @@
-// Data contract types — named to match the backend's DTOs so wiring the real
-// API in later is a thin swap (see mockTranscript.ts / transcriptApi.ts).
+// The editor's own view of a transcript. The wire types live in
+// src/api/generatedApi.ts (generated from the backend's OpenAPI schema); these are what
+// the editor works in after api/transcriptAdapter.ts has normalised them — chiefly by
+// resolving each segment's member word indices, which the backend does not send.
 
 /** A single transcribed word with second-precision timestamps. */
 export interface TranscriptWordDto {
@@ -21,18 +23,6 @@ export interface TranscriptDto {
   durationSeconds: number;
   words: TranscriptWordDto[];
   segments: TranscriptSegmentDto[];
-}
-
-/** One row of the request sent to the backend describing what to keep. */
-export interface CutWordMarkingDto {
-  index: number;
-  kept: boolean;
-}
-
-export interface CutRequestDto {
-  transcriptId: string;
-  bufferMs: number;
-  words: CutWordMarkingDto[];
 }
 
 /** Editor-local view of a word: the transcript word plus edit state.

@@ -1,9 +1,14 @@
-import type { TranscriptDto, TranscriptSegmentDto, TranscriptWordDto } from '../types';
+import type {
+  Transcript as ApiTranscript,
+  TranscriptSegment as ApiTranscriptSegment,
+  TranscriptWord as ApiTranscriptWord,
+} from '../../../api/generatedApi';
+import type { TranscriptDto } from '../types';
+import { toEditorTranscript } from '../api/transcriptAdapter';
 
-// A realistic-shaped fixture standing in for the Groq whisper-large-v3
-// response until the backend agent's endpoint is wired up. Timings are
-// approximate but internally consistent (monotonic, no overlaps) so the
-// preview-skip and buffer logic behave the way they will against real data.
+// A realistic-shaped fixture standing in for a Groq whisper-large-v3 transcript.
+// Timings are approximate but internally consistent (monotonic, no overlaps) so the
+// preview-skip and buffer logic behave the way they do against real data.
 const RAW: Array<{ start: number; end: number; text: string; words: [string, number, number][] }> = [
   {
     start: 0.0,
@@ -59,22 +64,36 @@ const RAW: Array<{ start: number; end: number; text: string; words: [string, num
   },
 ];
 
-function buildTranscript(): TranscriptDto {
-  const words: TranscriptWordDto[] = [];
-  const segments: TranscriptSegmentDto[] = RAW.map((seg) => {
-    const wordIndices: number[] = [];
+function buildApiTranscript(): ApiTranscript {
+  const words: ApiTranscriptWord[] = [];
+  const segments: ApiTranscriptSegment[] = RAW.map((seg, index) => {
     seg.words.forEach(([text, start, end]) => {
-      wordIndices.push(words.length);
-      words.push({ text, start, end });
+      words.push({ text, start, end, kept: true });
     });
-    return { start: seg.start, end: seg.end, text: seg.text, wordIndices };
+    return { index, start: seg.start, end: seg.end, text: seg.text };
   });
 
   return {
+    transcriptionJobId: MOCK_TRANSCRIPTION_JOB_ID,
     durationSeconds: 11,
     words,
     segments,
   };
 }
 
-export const mockTranscript: TranscriptDto = buildTranscript();
+/** A stable id for the fixture, so e2e can navigate to /editor/:id. */
+export const MOCK_TRANSCRIPTION_JOB_ID = '11111111-1111-1111-1111-111111111111';
+
+/**
+ * The fixture in the shape `GET /api/transcriptions/{id}/transcript` returns — this is
+ * what e2e route stubs fulfil with. Note segments carry no `wordIndices`; the backend
+ * genuinely doesn't send them.
+ */
+export const mockApiTranscript: ApiTranscript = buildApiTranscript();
+
+/**
+ * The same fixture as the editor sees it, i.e. run through the real adapter rather than
+ * hand-built. Deriving it means the unit fixture and the e2e payload cannot drift apart,
+ * and the segment→word mapping under test is the one production uses.
+ */
+export const mockTranscript: TranscriptDto = toEditorTranscript(mockApiTranscript);

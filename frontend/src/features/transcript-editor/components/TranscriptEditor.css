@@ -261,3 +261,13 @@
   color: var(--text-secondary);
   text-align: center;
 }
+
+.editor-export-status {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.editor-export-status .error {
+  color: #ef4444;
+}
