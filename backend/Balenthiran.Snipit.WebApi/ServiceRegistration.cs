@@ -29,6 +29,7 @@ public static class ServiceRegistration
         // File storage
         services.Configure<FileStorageOptions>(configuration.GetSection("FileStorage"));
         services.AddSingleton<IFileStorageService, LocalDiskFileStorageService>();
+        services.AddSingleton<IUploadMediaTypeResolver, UploadMediaTypeResolver>();
 
         // Background job queue (in-process, single worker — see docs/specs for rationale)
         services.AddSingleton<IBackgroundJobQueue, BackgroundJobQueue>();

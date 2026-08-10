@@ -4,15 +4,26 @@
     <EnableDefaultResourceItems>false</EnableDefaultResourceItems>    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Emit the OpenAPI document at build time (Microsoft.Extensions.ApiDescription.Server
+         loads the app in-process — no live server and no database needed) so the frontend can
+         generate its API client offline / in CI. Debug only, and dropped into the project
+         directory so the RenameOpenApiFile target below can normalise it to openapi.json. -->
+    <OpenApiGenerateDocumentsOnBuild Condition="'$(Configuration)' == 'Debug'">true</OpenApiGenerateDocumentsOnBuild>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)</OpenApiDocumentsDirectory>
   </PropertyGroup>
 
-  <Target Name="RenameOpenApiFile" AfterTargets="GenerateOpenApiDocuments" Condition="'$(Configuration)' == 'Debug' And Exists('$(OpenApiDocumentsDirectory)$(AssemblyName)_v1.json')">
-    <Move SourceFiles="$(OpenApiDocumentsDirectory)$(AssemblyName)_v1.json" DestinationFiles="$(OpenApiDocumentsDirectory)openapi.json" OverwriteReadOnlyFiles="true" />
+  <!-- getdocument writes "$(AssemblyName).json"; normalise it to the stable openapi.json that
+       frontend codegen (frontend/openapi-config.cjs) reads. -->
+  <Target Name="RenameOpenApiFile" AfterTargets="GenerateOpenApiDocuments" Condition="Exists('$(OpenApiDocumentsDirectory)/$(AssemblyName).json')">
+    <Move SourceFiles="$(OpenApiDocumentsDirectory)/$(AssemblyName).json" DestinationFiles="$(OpenApiDocumentsDirectory)/openapi.json" OverwriteReadOnlyFiles="true" />
   </Target>
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="16.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.2">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <!-- Pin above the transitive 2.0.0 pulled in by AspNetCore.OpenApi — closes NU1903 (GHSA-v5pm-xwqc-g5wc). -->
     <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">

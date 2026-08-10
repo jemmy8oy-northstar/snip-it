@@ -4,46 +4,135 @@ const injectedRtkApi = api.injectEndpoints({
     getStatus: build.query<GetStatusApiResponse, GetStatusApiArg>({
       query: () => ({ url: `/api/status` }),
     }),
-    registerInterest: build.mutation<
-      RegisterInterestApiResponse,
-      RegisterInterestApiArg
+    submitTranscription: build.mutation<
+      SubmitTranscriptionApiResponse,
+      SubmitTranscriptionApiArg
     >({
       query: (queryArg) => ({
-        url: `/api/interest/register/${queryArg.projectSlug}`,
+        url: `/api/transcriptions`,
         method: "POST",
-        body: queryArg.registerInterestRequest,
+        body: queryArg.body,
       }),
     }),
-    registerGeneralInterest: build.mutation<
-      RegisterGeneralInterestApiResponse,
-      RegisterGeneralInterestApiArg
+    getTranscriptionJob: build.query<
+      GetTranscriptionJobApiResponse,
+      GetTranscriptionJobApiArg
+    >({
+      query: (queryArg) => ({ url: `/api/transcriptions/${queryArg.id}` }),
+    }),
+    getTranscript: build.query<GetTranscriptApiResponse, GetTranscriptApiArg>({
+      query: (queryArg) => ({
+        url: `/api/transcriptions/${queryArg.id}/transcript`,
+      }),
+    }),
+    getTranscriptionSource: build.query<
+      GetTranscriptionSourceApiResponse,
+      GetTranscriptionSourceApiArg
     >({
       query: (queryArg) => ({
-        url: `/api/interest/register-general`,
-        method: "POST",
-        body: queryArg.registerInterestRequest,
+        url: `/api/transcriptions/${queryArg.id}/source`,
       }),
+    }),
+    submitCut: build.mutation<SubmitCutApiResponse, SubmitCutApiArg>({
+      query: (queryArg) => ({
+        url: `/api/cuts`,
+        method: "POST",
+        body: queryArg.cutRequest,
+      }),
+    }),
+    getCutJob: build.query<GetCutJobApiResponse, GetCutJobApiArg>({
+      query: (queryArg) => ({ url: `/api/cuts/${queryArg.id}` }),
+    }),
+    downloadCut: build.query<DownloadCutApiResponse, DownloadCutApiArg>({
+      query: (queryArg) => ({ url: `/api/cuts/${queryArg.id}/download` }),
     }),
   }),
   overrideExisting: false,
 });
 export { injectedRtkApi as enhancedApi };
-export type GetStatusApiResponse = unknown;
+export type GetStatusApiResponse = /** status 200 OK */ SystemStatusResponse;
 export type GetStatusApiArg = void;
-export type RegisterInterestApiResponse = unknown;
-export type RegisterInterestApiArg = {
-  projectSlug: string;
-  registerInterestRequest: RegisterInterestRequest;
+export type SubmitTranscriptionApiResponse =
+  /** status 200 OK */ TranscriptionJob;
+export type SubmitTranscriptionApiArg = {
+  body: {
+    file: IFormFile;
+  };
 };
-export type RegisterGeneralInterestApiResponse = unknown;
-export type RegisterGeneralInterestApiArg = {
-  registerInterestRequest: RegisterInterestRequest;
+export type GetTranscriptionJobApiResponse =
+  /** status 200 OK */ TranscriptionJob;
+export type GetTranscriptionJobApiArg = {
+  id: string;
 };
-export type RegisterInterestRequest = {
-  email?: string;
+export type GetTranscriptApiResponse = /** status 200 OK */ Transcript;
+export type GetTranscriptApiArg = {
+  id: string;
+};
+export type GetTranscriptionSourceApiResponse = unknown;
+export type GetTranscriptionSourceApiArg = {
+  id: string;
+};
+export type SubmitCutApiResponse = /** status 200 OK */ CutJobResponse;
+export type SubmitCutApiArg = {
+  cutRequest: CutRequest;
+};
+export type GetCutJobApiResponse = /** status 200 OK */ CutJobResponse;
+export type GetCutJobApiArg = {
+  id: string;
+};
+export type DownloadCutApiResponse = unknown;
+export type DownloadCutApiArg = {
+  id: string;
+};
+export type SystemStatusResponse = {
+  version: string;
+  friendlyStatus: string;
+  timestamp: string;
+};
+export type JobStatus = number;
+export type TranscriptionJob = {
+  id?: string;
+  status?: JobStatus;
+  error?: null | string;
+  createdAt?: string;
+};
+export type IFormFile = Blob;
+export type TranscriptSegment = {
+  index?: number | string;
+  start?: number | string;
+  end?: number | string;
+  text?: string;
+};
+export type TranscriptWord = {
+  text?: string;
+  start?: number | string;
+  end?: number | string;
+  kept?: boolean;
+};
+export type Transcript = {
+  transcriptionJobId?: string;
+  durationSeconds?: number | string;
+  segments?: TranscriptSegment[];
+  words?: TranscriptWord[];
+};
+export type CutJobResponse = {
+  downloadUrl?: null | string;
+  id?: string;
+  status?: JobStatus;
+  error?: null | string;
+  createdAt?: string;
+};
+export type CutRequest = {
+  transcriptionJobId?: string;
+  words?: TranscriptWord[];
 };
 export const {
   useGetStatusQuery,
-  useRegisterInterestMutation,
-  useRegisterGeneralInterestMutation,
+  useSubmitTranscriptionMutation,
+  useGetTranscriptionJobQuery,
+  useGetTranscriptQuery,
+  useGetTranscriptionSourceQuery,
+  useSubmitCutMutation,
+  useGetCutJobQuery,
+  useDownloadCutQuery,
 } = injectedRtkApi;
