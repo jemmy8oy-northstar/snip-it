@@ -12,7 +12,6 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend build & test (.NET)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +35,6 @@ jobs:
           --verbosity normal
 
   frontend:
-    name: Frontend lint, build & unit tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -64,7 +62,6 @@ jobs:
         run: npm run test
 
   e2e:
-    name: E2E (Playwright)
     runs-on: ubuntu-latest
     defaults:
       run:
