@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { EDITOR_PATH, mockApi } from './mocks';
+import { EDITOR_PATH, MOCK_TRANSCRIPTION_JOB_ID, mockApi } from './mocks';
 
 /**
  * Smoke + screenshot coverage for the transcript editor, driven off mocked API
@@ -89,9 +89,36 @@ test('send-for-export submits a cut and surfaces the job', async ({ page }) => {
   });
 });
 
-test('bare /editor explains that it needs a transcription job id', async ({ page }) => {
+test('uploading a file transcribes it and opens the editor', async ({ page }) => {
+  const uploads: string[] = [];
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().endsWith('/api/transcriptions')) {
+      // Multipart, not JSON — the whole reason the upload uses a hand-written endpoint.
+      uploads.push(request.headers()['content-type'] ?? '');
+    }
+  });
+
   await page.goto('./editor');
-  await expect(page.getByText('No transcript selected.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Transcribe a video' })).toBeVisible();
+  await page.screenshot({
+    path: 'e2e/screenshots/upload-panel.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
+
+  await page.getByLabel('Video or audio file').setInputFiles({
+    name: 'talk.mp4',
+    mimeType: 'video/mp4',
+    buffer: Buffer.from('not really a video'),
+  });
+  await page.getByRole('button', { name: 'Transcribe' }).click();
+
+  // Transcription completing navigates to /editor/:id, which loads the transcript.
+  await expect(page.getByRole('button', { name: 'Select All', exact: true })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_TRANSCRIPTION_JOB_ID}$`));
+
+  expect(uploads).toHaveLength(1);
+  expect(uploads[0]).toContain('multipart/form-data');
 });
 
 test('remove-filler-words changes the edit stats', async ({ page }) => {
