@@ -81,7 +81,8 @@ cd backend && dotnet run --project Balenthiran.Snipit.WebApi
 cd frontend && npm run dev
 # App: http://localhost:5173
 
-# Regenerate API client after backend changes
+# Regenerate API client after backend changes (refresh schema, then codegen — no server needed)
+cd backend && dotnet build Balenthiran.Snipit.WebApi -c Debug   # refreshes committed openapi.json
 cd frontend && npm run codegen
 ```
 
