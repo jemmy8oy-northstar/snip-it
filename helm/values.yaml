@@ -1,4 +1,6 @@
-# Set this to your app name at scaffold time (e.g. "macro-metrics")
+# Names every resource in the release. Keep it "snipit" — docker-build-push.yml's GitOps step
+# patches apps[].image.tag in this file by app name, so the two app entries must stay named
+# "backend" and "frontend".
 fullnameOverride: "snipit"
 
 ingress:
@@ -8,27 +10,66 @@ ingress:
     - host: balenthiran.co.uk
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # The app exists to upload video. nginx-ingress defaults to a 1 MB request body and 60s
+    # proxy timeouts, which rejects or cuts off essentially every real recording, so both are
+    # raised. The backend has its own matching cap — Uploads__MaxBytes below.
+    nginx.ingress.kubernetes.io/proxy-body-size: "2048m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
   tls:
     - hosts:
         - balenthiran.co.uk
       secretName: balenthiran-tls   # shared wildcard cert — no per-project TLS setup
 
-registryPrefix: "lhr.ocir.io/lr7uc6l49odc"  # shared OCIR namespace
+# Uploaded sources, extracted audio and exported cuts are written to disk by
+# LocalDiskFileStorageService. With no volume they live in the container's writable layer and go
+# away on every restart — the job rows in Postgres survive, the media they point at doesn't.
+persistence:
+  enabled: true
+  size: 20Gi
+  storageClass: ""              # "" = cluster default StorageClass
 
 apps:
   - name: backend
     image:
-      repository: lhr.ocir.io/lr7uc6l49odc/snipit-backend   # Update at scaffold time
+      # Must match docker-build-push.yml's BACKEND_IMAGE (snip-it-backend), which is not the
+      # release name — the previous value (snipit-backend) does not exist in OCIR.
+      repository: lhr.ocir.io/lr7uc6l49odc/snip-it-backend
       tag: latest
       pullPolicy: Always
     containerPort: 8080
-    replicas: 1
+    replicas: 1                 # single writer: the storage PVC is RWO and the job queue is in-process
     service:
       port: 80
       targetPort: 8080
     ingress:
-      path: /snipit/api     # developer replaces 'snipit' at scaffold time
+      path: /snipit/api         # longer prefix than the frontend's, so ingress-nginx matches it first
       pathType: Prefix
+    env:
+      # The ingress forwards the whole path; UsePathBase strips this prefix before routing.
+      - name: PathBase
+        value: "/snipit"
+      - name: FileStorage__RootPath
+        value: "/data/storage"
+      - name: Uploads__MaxBytes
+        value: "2147483648"     # 2 GiB — same ceiling as proxy-body-size above
+      - name: ConnectionStrings__DefaultConnection
+        valueFrom:
+          secretKeyRef:
+            name: snipit-secrets
+            key: DATABASE_URL
+      - name: Groq__ApiKey
+        valueFrom:
+          secretKeyRef:
+            name: snipit-secrets
+            key: GROQ_API_KEY
+    volumeMounts:
+      - name: storage
+        mountPath: /data/storage
+    volumes:
+      - name: storage
+        persistentVolumeClaim:
+          claimName: snipit-storage
     resources: {}
     nodeSelector: {}
     tolerations: []
@@ -36,7 +77,8 @@ apps:
 
   - name: frontend
     image:
-      repository: lhr.ocir.io/lr7uc6l49odc/snipit-frontend   # Update at scaffold time
+      # Must match docker-build-push.yml's FRONTEND_IMAGE (snip-it-frontend).
+      repository: lhr.ocir.io/lr7uc6l49odc/snip-it-frontend
       tag: latest
       pullPolicy: Always
     containerPort: 80
@@ -45,17 +87,9 @@ apps:
       port: 80
       targetPort: 80
     ingress:
-      path: /snipit         # developer replaces 'snipit' at scaffold time
+      path: /snipit             # nginx.conf serves the SPA from /usr/share/nginx/html/snipit
       pathType: Prefix
     resources: {}
     nodeSelector: {}
     tolerations: []
     affinity: {}
-
-# App-specific secrets — add per project (none pre-scaffolded):
-# env:
-#   - name: MY_API_KEY
-#     valueFrom:
-#       secretKeyRef:
-#         name: {{ .Values.fullnameOverride }}-secrets
-#         key: MY_API_KEY

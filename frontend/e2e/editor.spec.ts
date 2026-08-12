@@ -90,11 +90,11 @@ test('send-for-export submits a cut and surfaces the job', async ({ page }) => {
 });
 
 test('uploading a file transcribes it and opens the editor', async ({ page }) => {
-  const uploads: string[] = [];
+  const uploads: { url: string; contentType: string }[] = [];
   page.on('request', (request) => {
     if (request.method() === 'POST' && request.url().endsWith('/api/transcriptions')) {
       // Multipart, not JSON — the whole reason the upload uses a hand-written endpoint.
-      uploads.push(request.headers()['content-type'] ?? '');
+      uploads.push({ url: request.url(), contentType: request.headers()['content-type'] ?? '' });
     }
   });
 
@@ -118,7 +118,10 @@ test('uploading a file transcribes it and opens the editor', async ({ page }) =>
   await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_TRANSCRIPTION_JOB_ID}$`));
 
   expect(uploads).toHaveLength(1);
-  expect(uploads[0]).toContain('multipart/form-data');
+  expect(uploads[0].contentType).toContain('multipart/form-data');
+  // The mocks match on '**/api/...', so they would happily answer a request sent to the host
+  // root — which in the cluster is a different app entirely. Assert the base path explicitly.
+  expect(new URL(uploads[0].url).pathname).toBe('/snipit/api/transcriptions');
 });
 
 test('remove-filler-words changes the edit stats', async ({ page }) => {

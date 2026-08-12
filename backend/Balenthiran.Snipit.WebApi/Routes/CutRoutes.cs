@@ -22,14 +22,14 @@ public static class CutRoutes
     }
 
     private static async Task<Results<Ok<CutJobResponse>, BadRequest<string>>> SubmitAsync(
-        CutRequest request, ICutService service, IMapper mapper, CancellationToken ct)
+        CutRequest request, ICutService service, IMapper mapper, HttpContext http, CancellationToken ct)
     {
         var words = mapper.Map<List<DomainTranscriptWord>>(request.Words);
 
         try
         {
             var job = await service.SubmitAsync(request.TranscriptionJobId, words, ct);
-            return TypedResults.Ok(ToResponse(job, mapper));
+            return TypedResults.Ok(ToResponse(job, mapper, http));
         }
         catch (InvalidOperationException ex)
         {
@@ -38,10 +38,10 @@ public static class CutRoutes
     }
 
     private static async Task<Results<Ok<CutJobResponse>, NotFound>> GetJobAsync(
-        Guid id, ICutService service, IMapper mapper, CancellationToken ct)
+        Guid id, ICutService service, IMapper mapper, HttpContext http, CancellationToken ct)
     {
         var job = await service.GetJobAsync(id, ct);
-        return job is null ? TypedResults.NotFound() : TypedResults.Ok(ToResponse(job, mapper));
+        return job is null ? TypedResults.NotFound() : TypedResults.Ok(ToResponse(job, mapper, http));
     }
 
     private static async Task<Results<FileStreamHttpResult, NotFound, Conflict<string>>> DownloadAsync(
@@ -62,10 +62,19 @@ public static class CutRoutes
         return TypedResults.File(stream, "video/mp4", $"{id}.mp4");
     }
 
-    private static CutJobResponse ToResponse(IDomainCutJob job, IMapper mapper)
+    private static CutJobResponse ToResponse(IDomainCutJob job, IMapper mapper, HttpContext http)
     {
         var response = mapper.Map<CutJobResponse>(job);
-        response.DownloadUrl = job.Status == JobStatus.Completed ? $"/api/cuts/{job.Id}/download" : null;
+
+        // The browser follows this href directly, so it has to be the path the browser sees, not
+        // the one routing sees. In the cluster the app is served under /snipit and UsePathBase
+        // strips that prefix before this code runs — without putting it back the link resolves
+        // against the host root, which belongs to a different app. PathBase is empty locally, so
+        // this is the same string as before there.
+        response.DownloadUrl = job.Status == JobStatus.Completed
+            ? $"{http.Request.PathBase}/api/cuts/{job.Id}/download"
+            : null;
+
         return response;
     }
 }
