@@ -18,7 +18,7 @@ interface PollOptions {
  * The query hook is passed in so transcription and cut jobs share one implementation; it is
  * called unconditionally on every render, as hook rules require.
  */
-export function usePolledJob<TJob extends { status?: JobStatus }>(
+export function usePolledJob<TJob extends { status: JobStatus }>(
   useJobQuery: (arg: { id: string }, options: PollOptions) => { data?: TJob },
   jobId: string | undefined,
   intervalMs = 2000,
@@ -34,9 +34,12 @@ export function usePolledJob<TJob extends { status?: JobStatus }>(
     setSettled(false);
   }, [jobId]);
 
+  // Depend on the status value rather than the response object — a poll that changes nothing
+  // still returns a fresh object, which would re-run this on every tick.
+  const status = data?.status;
   useEffect(() => {
-    if (isTerminal(data?.status)) setSettled(true);
-  }, [data?.status]);
+    if (status && isTerminal(status)) setSettled(true);
+  }, [status]);
 
   return data;
 }

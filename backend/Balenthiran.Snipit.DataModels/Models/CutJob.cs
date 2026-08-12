@@ -4,8 +4,11 @@ namespace Balenthiran.Snipit.DataModels.Models;
 
 public class CutJob : ICutJob
 {
-    public Guid Id { get; set; }
-    public JobStatus Status { get; set; }
-    public string? Error { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public required Guid Id { get; set; }
+    public required JobStatus Status { get; set; }
+
+    /// <summary>Always present in the payload, null unless the job failed — so a client sees
+    /// `string | null` rather than an optional property.</summary>
+    public required string? Error { get; set; }
+    public required DateTime CreatedAt { get; set; }
 }

@@ -1,36 +1,24 @@
 import type { JobStatus } from '../../../api/generatedApi';
 
 /**
- * The backend serialises its `JobStatus` enum as an integer, so the generated type is a
- * bare `number` and the ordinals have to be named somewhere. Mirrors
- * `Balenthiran.Snipit.Abstractions.DataModels.JobStatus` — declaration order is the
- * contract, so reordering that enum silently changes this.
- *
- * A `JsonStringEnumConverter` on the backend would delete this file; raised on the PR.
+ * The backend serialises `JobStatus` as its name, so the generated type is a string union and
+ * the values below are checked against it at compile time — a renamed or removed member is a
+ * type error here rather than a silently wrong comparison.
  */
-export const JOB_STATUS = {
-  Pending: 0,
-  Processing: 1,
-  Completed: 2,
-  Failed: 3,
-} as const;
 
 /** True once the job will not change again — i.e. stop polling. */
-export function isTerminal(status: JobStatus | undefined): boolean {
-  return status === JOB_STATUS.Completed || status === JOB_STATUS.Failed;
+export function isTerminal(status: JobStatus): boolean {
+  return status === 'Completed' || status === 'Failed';
 }
 
-export function describeJobStatus(status: JobStatus | undefined): string {
-  switch (status) {
-    case JOB_STATUS.Pending:
-      return 'queued';
-    case JOB_STATUS.Processing:
-      return 'processing';
-    case JOB_STATUS.Completed:
-      return 'complete';
-    case JOB_STATUS.Failed:
-      return 'failed';
-    default:
-      return 'unknown';
-  }
+/** The wire name is capitalised and past-tense; this is what a person should read. */
+const DESCRIPTIONS: Record<JobStatus, string> = {
+  Pending: 'queued',
+  Processing: 'processing',
+  Completed: 'complete',
+  Failed: 'failed',
+};
+
+export function describeJobStatus(status: JobStatus): string {
+  return DESCRIPTIONS[status] ?? 'unknown';
 }

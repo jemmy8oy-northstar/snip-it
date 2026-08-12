@@ -4,20 +4,21 @@ import {
   mockApiTranscript,
 } from '../src/features/transcript-editor/fixtures/mockTranscript';
 
-/** Mirrors the backend's JobStatus ordinals — see src/features/transcript-editor/api/jobStatus.ts. */
-const JOB_STATUS_COMPLETED = 2;
-
 const MOCK_CUT_JOB_ID = '22222222-2222-2222-2222-222222222222';
 
+// `error` is null rather than absent because the backend declares it required-but-nullable —
+// the key is always on the wire (pinned by ApiJsonContractTests).
 const completedTranscriptionJob = {
   id: MOCK_TRANSCRIPTION_JOB_ID,
-  status: JOB_STATUS_COMPLETED,
+  status: 'Completed',
+  error: null,
   createdAt: '2026-01-01T00:00:00Z',
 };
 
 const completedCutJob = {
   id: MOCK_CUT_JOB_ID,
-  status: JOB_STATUS_COMPLETED,
+  status: 'Completed',
+  error: null,
   createdAt: '2026-01-01T00:00:00Z',
   downloadUrl: `/api/cuts/${MOCK_CUT_JOB_ID}/download`,
 };

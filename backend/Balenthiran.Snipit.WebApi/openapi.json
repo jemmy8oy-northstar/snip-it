@@ -287,6 +287,13 @@
   "components": {
     "schemas": {
       "CutJobResponse": {
+        "required": [
+          "downloadUrl",
+          "id",
+          "status",
+          "error",
+          "createdAt"
+        ],
         "type": "object",
         "properties": {
           "downloadUrl": {
@@ -315,6 +322,10 @@
         }
       },
       "CutRequest": {
+        "required": [
+          "transcriptionJobId",
+          "words"
+        ],
         "type": "object",
         "properties": {
           "transcriptionJobId": {
@@ -334,7 +345,12 @@
         "format": "binary"
       },
       "JobStatus": {
-        "type": "integer"
+        "enum": [
+          "Pending",
+          "Processing",
+          "Completed",
+          "Failed"
+        ]
       },
       "SystemStatusResponse": {
         "required": [
@@ -357,6 +373,12 @@
         }
       },
       "Transcript": {
+        "required": [
+          "transcriptionJobId",
+          "durationSeconds",
+          "segments",
+          "words"
+        ],
         "type": "object",
         "properties": {
           "transcriptionJobId": {
@@ -364,11 +386,7 @@
             "format": "uuid"
           },
           "durationSeconds": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "segments": {
@@ -386,6 +404,12 @@
         }
       },
       "TranscriptionJob": {
+        "required": [
+          "id",
+          "status",
+          "error",
+          "createdAt"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -408,30 +432,24 @@
         }
       },
       "TranscriptSegment": {
+        "required": [
+          "index",
+          "start",
+          "end",
+          "text"
+        ],
         "type": "object",
         "properties": {
           "index": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "start": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "end": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "text": {
@@ -440,25 +458,23 @@
         }
       },
       "TranscriptWord": {
+        "required": [
+          "text",
+          "start",
+          "end",
+          "kept"
+        ],
         "type": "object",
         "properties": {
           "text": {
             "type": "string"
           },
           "start": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "end": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "kept": {

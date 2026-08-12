@@ -15,6 +15,11 @@ var maxUploadBytes = builder.Configuration.GetValue<long?>("Uploads:MaxBytes") ?
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = maxUploadBytes);
 builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = maxUploadBytes);
 
+// Enum names instead of ordinals, and strict numbers — see SnipitJsonOptions for why each one
+// matters to the generated client. Also drives the build-time OpenAPI document, so the schema
+// and the wire format cannot drift apart.
+builder.Services.ConfigureHttpJsonOptions(options => SnipitJsonOptions.Configure(options.SerializerOptions));
+
 builder.Services.AddBackendServices(builder.Configuration);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();

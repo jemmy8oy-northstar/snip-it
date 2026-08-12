@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGetTranscriptionJobQuery } from '../../../api/generatedApi';
 import { useUploadTranscriptionMutation } from '../api/transcriptionUploadApi';
-import { JOB_STATUS, describeJobStatus } from '../api/jobStatus';
+import { describeJobStatus } from '../api/jobStatus';
 import { usePolledJob } from '../hooks/usePolledJob';
 import './TranscriptUploadPanel.css';
 
@@ -21,12 +21,12 @@ export function TranscriptUploadPanel() {
   const job = usePolledJob(useGetTranscriptionJobQuery, submittedJob?.id) ?? submittedJob;
 
   useEffect(() => {
-    if (job?.status === JOB_STATUS.Completed && job.id) {
+    if (job?.status === 'Completed' && job.id) {
       navigate(`/editor/${job.id}`);
     }
   }, [job?.status, job?.id, navigate]);
 
-  const isWaiting = Boolean(job) && job?.status !== JOB_STATUS.Failed;
+  const isWaiting = Boolean(job) && job?.status !== 'Failed';
 
   return (
     <div className="upload-panel glass">
@@ -57,7 +57,7 @@ export function TranscriptUploadPanel() {
       {job && (
         <p className="upload-status">
           Transcription is {describeJobStatus(job.status)}.
-          {job.status === JOB_STATUS.Failed ? (
+          {job.status === 'Failed' ? (
             <span className="error"> {job.error ?? 'No reason given.'}</span>
           ) : (
             ' The editor opens as soon as it finishes.'
