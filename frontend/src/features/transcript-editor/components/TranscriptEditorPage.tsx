@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useParams } from 'react-router-dom';
 import type { AppDispatch } from '../../../store';
-import { useGetTranscriptQuery, useSubmitCutRequestMutation } from '../api/transcriptApi';
+import { useGetTranscriptQuery, useSubmitCutMutation } from '../../../api/generatedApi';
+import { toEditorTranscript } from '../api/transcriptAdapter';
+import { buildCutRequest } from '../api/cutRequest';
+import { describeJobStatus } from '../api/jobStatus';
 import {
   allWordsKeptSet,
   bufferSecondsSet,
@@ -10,6 +14,7 @@ import {
   segmentOverrideCleared,
   segmentOverrideSet,
   selectBufferSeconds,
+  selectDurationSeconds,
   selectKeptRanges,
   selectSegments,
   selectStats,
@@ -18,26 +23,43 @@ import {
 } from '../editorSlice';
 import { usePreviewPlayback } from '../hooks/usePreviewPlayback';
 import { useActiveWordIndex } from '../hooks/useActiveWordIndex';
+import { useCutJobProgress } from '../hooks/useCutJobProgress';
 import { TranscriptWords } from './TranscriptWords';
 import { ScrubberPopover, type ScrubberTarget } from './ScrubberPopover';
 import { EditorStats } from './EditorStats';
 import { EditListPanel } from './EditListPanel';
-import type { CutRequestDto, KeptRange } from '../types';
+import type { KeptRange } from '../types';
 import './TranscriptEditor.css';
 
-// Dev-only stand-in for the source video the backend will eventually
-// return alongside the transcript (see the report for what's left to wire).
-const MOCK_VIDEO_SRC = `${import.meta.env.BASE_URL}fixtures/mock-transcript-source.mp4`;
-const MOCK_TRANSCRIPT_ID = 'mock-transcript-1';
-
 export function TranscriptEditorPage() {
+  const { transcriptionJobId } = useParams<{ transcriptionJobId: string }>();
+
+  // The route is /editor/:transcriptionJobId; the bare /editor link in the navbar has no
+  // job to open until there's an upload flow to create one.
+  if (!transcriptionJobId) {
+    return (
+      <div className="editor-empty">
+        No transcript selected. Open <code>/editor/&lt;transcription-job-id&gt;</code> for a job you
+        have already submitted to <code>POST /api/transcriptions</code>.
+      </div>
+    );
+  }
+
+  return <TranscriptEditor transcriptionJobId={transcriptionJobId} />;
+}
+
+function TranscriptEditor({ transcriptionJobId }: { transcriptionJobId: string }) {
   const dispatch = useDispatch<AppDispatch>();
-  const { data: transcript, isLoading, isError } = useGetTranscriptQuery({ transcriptId: MOCK_TRANSCRIPT_ID });
-  const [submitCutRequest, { isLoading: isSubmitting }] = useSubmitCutRequestMutation();
+  const { data, isLoading, isError, error } = useGetTranscriptQuery({ id: transcriptionJobId });
+  const [submitCut, { isLoading: isSubmitting, data: submittedJob, isError: isSubmitError }] =
+    useSubmitCutMutation();
+  const polledJob = useCutJobProgress(submittedJob?.id);
+  const cutJob = polledJob ?? submittedJob;
 
   const words = useSelector(selectWords);
   const segments = useSelector(selectSegments);
   const bufferSeconds = useSelector(selectBufferSeconds);
+  const durationSeconds = useSelector(selectDurationSeconds);
   const ranges = useSelector(selectKeptRanges);
   const stats = useSelector(selectStats);
 
@@ -47,14 +69,27 @@ export function TranscriptEditorPage() {
   const preview = usePreviewPlayback(videoRef, ranges);
   const activeWordIndex = useActiveWordIndex(videoRef, words);
 
+  const transcript = useMemo(() => (data ? toEditorTranscript(data) : null), [data]);
+
   useEffect(() => {
     if (transcript) {
-      dispatch(transcriptLoaded({ transcriptId: MOCK_TRANSCRIPT_ID, transcript }));
+      dispatch(transcriptLoaded({ transcriptId: transcriptionJobId, transcript }));
     }
-  }, [transcript, dispatch]);
+  }, [transcript, transcriptionJobId, dispatch]);
 
   if (isLoading) return <p style={{ color: 'var(--text-secondary)' }}>Loading transcript…</p>;
-  if (isError || !transcript) return <p style={{ color: '#ef4444' }}>Could not load the transcript.</p>;
+  if (isError || !transcript) {
+    // 409 is the backend's "job exists but isn't Completed yet" — worth telling apart from
+    // a genuine failure, since the answer is just to wait.
+    const notReady = isFetchErrorWithStatus(error, 409);
+    return (
+      <div className="editor-empty">
+        {notReady
+          ? 'This transcription job has not finished yet. Reload once it reports Completed.'
+          : 'Could not load the transcript.'}
+      </div>
+    );
+  }
   if (!words.length) return <div className="editor-empty">No transcript loaded yet.</div>;
 
   const handlePlaySegment = (_segmentIndex: number, fromTime: number) => {
@@ -81,18 +116,20 @@ export function TranscriptEditorPage() {
   };
 
   const handleSubmitForExport = () => {
-    const request: CutRequestDto = {
-      transcriptId: MOCK_TRANSCRIPT_ID,
-      bufferMs: Math.round(bufferSeconds * 1000),
-      words: words.map((w) => ({ index: w.index, kept: w.kept })),
-    };
-    void submitCutRequest(request);
+    void submitCut({
+      cutRequest: buildCutRequest(transcriptionJobId, words, bufferSeconds, durationSeconds),
+    });
   };
 
   return (
     <div className="editor">
       <div className="editor-left">
-        <video ref={videoRef} className="editor-video" src={MOCK_VIDEO_SRC} controls />
+        <video
+          ref={videoRef}
+          className="editor-video"
+          src={`/api/transcriptions/${transcriptionJobId}/source`}
+          controls
+        />
 
         <div className="editor-toolbar glass">
           <button
@@ -134,9 +171,24 @@ export function TranscriptEditorPage() {
 
         <EditListPanel ranges={ranges} onApply={handleApplyEditList} />
 
-        <button className="editor-btn" type="button" disabled={isSubmitting} onClick={handleSubmitForExport}>
+        {/* The backend rejects a cut with nothing kept, so don't let it be submitted. */}
+        <button
+          className="editor-btn"
+          type="button"
+          disabled={isSubmitting || !ranges.length}
+          onClick={handleSubmitForExport}
+        >
           {isSubmitting ? 'Submitting…' : 'Send for export'}
         </button>
+
+        {cutJob && (
+          <p className="editor-export-status">
+            Cut job <code>{cutJob.id}</code> is {describeJobStatus(cutJob.status)}.{' '}
+            {cutJob.downloadUrl && <a href={cutJob.downloadUrl}>Download</a>}
+            {cutJob.error && <span className="error">{cutJob.error}</span>}
+          </p>
+        )}
+        {isSubmitError && <p className="editor-export-status error">Could not submit the cut.</p>}
       </div>
 
       <TranscriptWords
@@ -156,4 +208,9 @@ export function TranscriptEditorPage() {
       )}
     </div>
   );
+}
+
+/** RTK Query surfaces fetch errors as `{ status, data }`; narrow without importing the union. */
+function isFetchErrorWithStatus(error: unknown, status: number): boolean {
+  return typeof error === 'object' && error !== null && 'status' in error && error.status === status;
 }

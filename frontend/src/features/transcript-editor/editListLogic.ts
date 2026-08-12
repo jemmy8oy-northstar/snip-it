@@ -1,21 +1,30 @@
 import type { EditorWord, KeptRange } from './types';
 
+/** A kept range plus the span of word indices it was built from. */
+export interface KeptRun extends KeptRange {
+  firstIndex: number;
+  lastIndex: number;
+}
+
 /**
- * Turn per-word kept/cut flags into merged [start, end) ranges of source
- * video time to keep, padding each kept run's edges by `bufferSeconds` (but
- * never past a real gap, and never past a manual scrubber override).
+ * One entry per contiguous run of kept words, in transcript order, with each
+ * run's edges padded by `bufferSeconds` (but never past a real gap, and never
+ * past a manual scrubber override).
  *
- * Ported from review.html's computeClipEditList — same buffer-then-merge
- * algorithm, generalised to a single video rather than a clip array.
+ * Kept unmerged and index-bearing because the cut request is built from these:
+ * the backend rebuilds ranges by walking the words it is sent and merging
+ * contiguous kept ones, so sending each run's padded boundaries on its own edge
+ * words makes the backend reproduce exactly these runs. See
+ * `api/cutRequest.ts`.
  */
-export function computeKeptRanges(
+export function computeKeptRuns(
   words: EditorWord[],
   bufferSeconds: number,
   durationSeconds: number,
-): KeptRange[] {
+): KeptRun[] {
   if (!words.length) return [];
   const dur = durationSeconds || Number.MAX_SAFE_INTEGER;
-  const raw: KeptRange[] = [];
+  const runs: KeptRun[] = [];
 
   let i = 0;
   while (i < words.length) {
@@ -44,17 +53,32 @@ export function computeKeptRanges(
     const finalStart = startOverride != null ? startOverride : round3(Math.max(0, wStart - startBuf));
     const finalEnd = endOverride != null ? endOverride : round3(Math.min(dur, wEnd + endBuf));
 
-    raw.push({ start: finalStart, end: finalEnd });
+    runs.push({ start: finalStart, end: finalEnd, firstIndex: i, lastIndex: j - 1 });
     i = j;
   }
 
+  return runs;
+}
+
+/**
+ * Turn per-word kept/cut flags into merged [start, end) ranges of source
+ * video time to keep.
+ *
+ * Ported from review.html's computeClipEditList — same buffer-then-merge
+ * algorithm, generalised to a single video rather than a clip array.
+ */
+export function computeKeptRanges(
+  words: EditorWord[],
+  bufferSeconds: number,
+  durationSeconds: number,
+): KeptRange[] {
   const merged: KeptRange[] = [];
-  for (const seg of raw) {
+  for (const run of computeKeptRuns(words, bufferSeconds, durationSeconds)) {
     const prev = merged[merged.length - 1];
-    if (prev && seg.start <= prev.end) {
-      prev.end = Math.max(prev.end, seg.end);
+    if (prev && run.start <= prev.end) {
+      prev.end = Math.max(prev.end, run.end);
     } else {
-      merged.push({ ...seg });
+      merged.push({ start: run.start, end: run.end });
     }
   }
   return merged;
