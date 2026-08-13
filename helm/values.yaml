@@ -16,6 +16,16 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-body-size: "2048m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    # snip-it is an open upload-and-transcode endpoint on a cluster shared with everything else,
+    # so anyone who found the URL could spend Groq credits and fill the PVC. James's call (#13,
+    # #14): basic auth in front of it, checked by nginx before a request reaches a pod. These
+    # annotations apply to this Ingress object only — the paths below — so balenthiran.co.uk on
+    # the same host is untouched. The secret is cluster-side and cannot live in this repo; see
+    # docs/specs/deployment.md. If it is absent nginx answers 503 here, which is the right way
+    # round for an app whose failure mode is a stranger's upload.
+    nginx.ingress.kubernetes.io/auth-type: "basic"
+    nginx.ingress.kubernetes.io/auth-secret: "snipit-basic-auth"
+    nginx.ingress.kubernetes.io/auth-realm: "snip-it"
   tls:
     - hosts:
         - balenthiran.co.uk

@@ -40,6 +40,21 @@ kubectl create secret generic snipit-secrets -n snipit \
   --from-literal=GROQ_API_KEY="<groq key>"
 ```
 
+**4. The basic-auth secret.** The ingress is annotated `auth-type: basic` (see the table below),
+and nginx reads the credentials from a secret with a single `auth` key holding an htpasswd file:
+
+```sh
+htpasswd -nbB james '<password>' > /tmp/auth      # -B = bcrypt; -n prints instead of writing a file
+kubectl create secret generic snipit-basic-auth -n snipit --from-file=auth=/tmp/auth
+rm /tmp/auth
+```
+
+No `htpasswd` to hand? `printf 'james:%s\n' "$(openssl passwd -apr1 '<password>')" > /tmp/auth`
+produces a hash nginx also accepts (apr1 rather than bcrypt). The secret **must be in the `snipit`
+namespace** — nginx resolves `auth-secret` relative to the ingress unless it is written
+`namespace/name`. To change the password later, replace the secret; no redeploy is needed, the
+ingress controller re-reads it.
+
 `DATABASE_URL` is an Npgsql connection string, not a URI — it is bound straight to
 `ConnectionStrings:DefaultConnection`. With no connection string the app still starts, logs
 `Skipping database migration`, and 500s on every route that touches a job.
@@ -53,6 +68,7 @@ kubectl create secret generic snipit-secrets -n snipit \
 | `PathBase=/snipit` | The host is shared with the other apps, so the backend is served under a sub-path and the ingress forwards the whole path. `UsePathBase` strips it before routing. |
 | `proxy-body-size: 2048m`, `proxy-*-timeout: 600` | nginx-ingress defaults (1 MB, 60s) reject or cut off essentially every real video upload. |
 | `Uploads__MaxBytes` | Kestrel caps request bodies at 30 MB and multipart sections at 128 MB by default. All three limits — ingress, Kestrel, form options — have to allow the upload or it fails as a bare 413. |
+| `auth-type: basic` + `auth-secret: snipit-basic-auth` | The app has no login of its own and its one job is to accept video uploads, so an unauthenticated URL is an open invitation to spend Groq credits and fill a 20Gi PVC. nginx rejects an unauthenticated request before it reaches a pod, which also means no upload is ever buffered to disk for it. Scoped to this Ingress object, so the other apps on the host are unaffected. |
 | `ffmpeg` in `backend/Dockerfile` | Both pipelines shell out to it by bare command name. The base image has none, so the app starts fine and then fails every job at run time. |
 
 ## The sub-path, in all four places it has to agree
@@ -95,8 +111,11 @@ CrashLoopBackOff, and going live is a decision, not a chore. See "Open decisions
 ## Verifying a live deploy
 
 ```sh
-curl https://balenthiran.co.uk/snipit/api/status         # {"status":"Healthy",...}
+curl -u james:'<password>' https://balenthiran.co.uk/snipit/api/status    # {"status":"Healthy",...}
 ```
+
+Without `-u` the same call returns **401** — that is the basic auth working, not the app being
+down. A **503** with an nginx body means the `snipit-basic-auth` secret is missing or malformed.
 
 Then the real path: open `/snipit/editor`, upload a short clip, and watch the transcription job
 move to `Completed`. That exercises ffmpeg, the Groq key, the PVC and the database in one go — a
@@ -104,9 +123,11 @@ green `/status` proves none of them.
 
 ## Open decisions
 
-- **The app is public and unauthenticated.** Anyone who finds the URL can upload video and spend
-  Groq credits and disk. Before it goes live it wants at least one of: basic auth on the ingress,
-  an allowlist, or accepting the risk knowingly.
+- ~~**The app is public and unauthenticated.**~~ **Decided (#13, 2026-08-12): basic auth on the
+  ingress.** Implemented above. What it is *not*: per-user identity, a session, or any protection
+  against someone who has the shared password — it is one credential shared with whoever James
+  gives it to, which is the right size for an app with one user. If snip-it ever gets more than a
+  handful, that is the point to put real auth in the app rather than widening this.
 - **Nothing ever deletes stored media.** The PVC only grows; there is no retention job.
 - **No route-level tests.** `Balenthiran.Snipit.Tests` does not reference the WebApi project, so
   nothing covers the `PathBase`-aware download link end to end. web-template#81's DB-free
