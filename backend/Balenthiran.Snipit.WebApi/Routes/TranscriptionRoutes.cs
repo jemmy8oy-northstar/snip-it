@@ -12,7 +12,11 @@ public static class TranscriptionRoutes
     {
         var group = parentGroup.MapGroup("/transcriptions");
 
-        group.MapPost("", SubmitAsync).DisableAntiforgery().WithName("SubmitTranscription");
+        // The 429 has to be declared by hand: JsonHttpResult<T> only knows its status code at
+        // runtime, so it contributes 200 to the OpenAPI document and the generated client would
+        // never learn the shape of the body it is expected to read.
+        group.MapPost("", SubmitAsync).DisableAntiforgery().WithName("SubmitTranscription")
+            .Produces<PreviewLimitReached>(StatusCodes.Status429TooManyRequests);
         group.MapGet("/{id:guid}", GetJobAsync).WithName("GetTranscriptionJob");
         group.MapGet("/{id:guid}/transcript", GetTranscriptAsync).WithName("GetTranscript");
         group.MapGet("/{id:guid}/source", GetSourceAsync).WithName("GetTranscriptionSource");
@@ -20,12 +24,25 @@ public static class TranscriptionRoutes
         return parentGroup;
     }
 
-    private static async Task<Results<Ok<TranscriptionJob>, BadRequest<string>>> SubmitAsync(
-        IFormFile file, ITranscriptionService service, IMapper mapper, CancellationToken ct)
+    private static async Task<Results<Ok<TranscriptionJob>, BadRequest<string>, JsonHttpResult<PreviewLimitReached>>> SubmitAsync(
+        IFormFile file,
+        ITranscriptionService service,
+        IPreviewQuotaService quota,
+        IMapper mapper,
+        CancellationToken ct)
     {
         if (file.Length == 0)
         {
             return TypedResults.BadRequest("No file uploaded.");
+        }
+
+        // Checked before the stream is read, so a blocked upload costs no disk. snip-it is open to
+        // anyone by design (#13), which makes this the only thing bounding what a bad day can cost.
+        if (await quota.GetBlockReasonAsync(ct) is { } reason)
+        {
+            return TypedResults.Json(
+                new PreviewLimitReached { Message = reason },
+                statusCode: StatusCodes.Status429TooManyRequests);
         }
 
         await using var stream = file.OpenReadStream();

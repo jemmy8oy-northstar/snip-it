@@ -53,6 +53,13 @@ apps:
         value: "/data/storage"
       - name: Uploads__MaxBytes
         value: "2147483648"     # 2 GiB — same ceiling as proxy-body-size above
+      # snip-it is deliberately open to anyone (#13), so this cap is the only thing bounding
+      # what a bad day costs in transcription credits, ffmpeg CPU and PVC space. Site-wide per
+      # UTC day, not per visitor — there is no sign-in, so there is nobody to count. Raise it
+      # freely; the app degrades into a friendly "it's a preview, try tomorrow" message rather
+      # than an error when it trips.
+      - name: Preview__MaxTranscriptionsPerDay
+        value: "25"
       - name: ConnectionStrings__DefaultConnection
         valueFrom:
           secretKeyRef:

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGetTranscriptionJobQuery } from '../../../api/generatedApi';
 import { useUploadTranscriptionMutation } from '../api/transcriptionUploadApi';
 import { describeJobStatus } from '../api/jobStatus';
+import { describeUploadError, isPreviewLimit } from '../api/uploadError';
 import { usePolledJob } from '../hooks/usePolledJob';
 import './TranscriptUploadPanel.css';
 
@@ -15,7 +16,7 @@ import './TranscriptUploadPanel.css';
 export function TranscriptUploadPanel() {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
-  const [upload, { data: submittedJob, isLoading: isUploading, isError: isUploadError }] =
+  const [upload, { data: submittedJob, isLoading: isUploading, isError: isUploadError, error: uploadError }] =
     useUploadTranscriptionMutation();
 
   const job = usePolledJob(useGetTranscriptionJobQuery, submittedJob?.id) ?? submittedJob;
@@ -52,7 +53,11 @@ export function TranscriptUploadPanel() {
         {isUploading ? 'Uploading…' : 'Transcribe'}
       </button>
 
-      {isUploadError && <p className="upload-status error">Upload failed. Try again.</p>}
+      {isUploadError && (
+        <p className={isPreviewLimit(uploadError) ? 'upload-status notice' : 'upload-status error'}>
+          {describeUploadError(uploadError)}
+        </p>
+      )}
 
       {job && (
         <p className="upload-status">

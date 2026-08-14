@@ -104,9 +104,15 @@ green `/status` proves none of them.
 
 ## Open decisions
 
-- **The app is public and unauthenticated.** Anyone who finds the URL can upload video and spend
-  Groq credits and disk. Before it goes live it wants at least one of: basic auth on the ingress,
-  an allowlist, or accepting the risk knowingly.
+- **The app is public and unauthenticated, on purpose.** James's call on #13, 2026-08-13:
+  *"I kind of want this open and can then let my viewers use it if they want."* So the protection
+  is a **budget, not a door**: `Preview__MaxTranscriptionsPerDay` (default 25, in
+  `helm/values.yaml`) caps site-wide transcriptions per UTC day, and a provider rate-limit
+  response puts the app in a short cooldown. Both refuse the upload **before the body is read**,
+  with a friendly "this is a preview" sentence rather than an error. Raising the cap is a
+  one-value `helm upgrade`. What this deliberately does *not* stop is one determined visitor
+  eating the whole day's allowance — there is no identity to meter against, and adding one was
+  the thing the openness decision rejected.
 - **Nothing ever deletes stored media.** The PVC only grows; there is no retention job.
 - **No route-level tests.** `Balenthiran.Snipit.Tests` does not reference the WebApi project, so
   nothing covers the `PathBase`-aware download link end to end. web-template#81's DB-free
