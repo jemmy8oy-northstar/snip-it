@@ -2,7 +2,6 @@
 # patches apps[].image.tag in this file by app name, so the two app entries must stay named
 # "backend" and "frontend".
 fullnameOverride: "snipit"
-
 ingress:
   enabled: true
   className: nginx
@@ -35,7 +34,7 @@ apps:
       # Must match docker-build-push.yml's BACKEND_IMAGE (snip-it-backend), which is not the
       # release name — the previous value (snipit-backend) does not exist in OCIR.
       repository: lhr.ocir.io/lr7uc6l49odc/snip-it-backend
-      tag: latest
+      tag: 0.1.2                  # pinned by docker-build-push.yml's GitOps step on main
       pullPolicy: Always
     containerPort: 8080
     replicas: 1                 # single writer: the storage PVC is RWO and the job queue is in-process
@@ -74,12 +73,11 @@ apps:
     nodeSelector: {}
     tolerations: []
     affinity: {}
-
   - name: frontend
     image:
       # Must match docker-build-push.yml's FRONTEND_IMAGE (snip-it-frontend).
       repository: lhr.ocir.io/lr7uc6l49odc/snip-it-frontend
-      tag: latest
+      tag: 0.1.2                  # pinned by docker-build-push.yml's GitOps step on main
       pullPolicy: Always
     containerPort: 80
     replicas: 1
