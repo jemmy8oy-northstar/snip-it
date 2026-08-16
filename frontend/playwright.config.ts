@@ -10,8 +10,14 @@ import { defineConfig, devices } from '@playwright/test';
  * Run:  npm run test:e2e            (headless, starts the dev server for you)
  *       npm run test:e2e -- --ui    (interactive)
  *
- * Note: CI (see e2e/README.md) uploads e2e/screenshots/ as a build artifact so
- * the editor screenshots are viewable per-PR.
+ * e2e/screenshots/ is GITIGNORED and asserts nothing — page.screenshot() is a
+ * plain write, not a comparison, so these files never fail a build. They were
+ * committed until #15; James asked for them out ("it wastes git storage") and
+ * nothing read them.
+ *
+ * ⚠️ This comment used to claim CI uploaded e2e/screenshots/ as a per-PR
+ * artifact. It never did — ci.yml uploads playwright-report/ and only
+ * `if: failure()`. Check the workflow before repeating that claim.
  */
 export default defineConfig({
   testDir: './e2e',
