@@ -18,11 +18,22 @@ Only `main` builds images, so nothing on `dev` is deployed, ever.
 
 The chart assumes these exist. Nothing here is in the repo, because none of it can be:
 
-**1. Namespace**
+**1. Namespace — `balenthiran`, and it already exists.** snip-it deploys *into the namespace the
+other apps already run in*, and this is not a style preference: the chart's Ingress declares
+`secretName: balenthiran-tls`, **Secrets are namespace-scoped**, and that one lives in
+`balenthiran`. An Ingress in a namespace of its own would not find it, so cert-manager would issue
+a *second* certificate for a hostname that already has one — and until it landed, that Ingress
+would serve nginx's self-signed "Fake Certificate" (the failure fixed for `www` in
+balenthiran.co.uk#21). Whatever authorises the OCIR image pull is a property of that namespace
+too: neither this chart nor `balenthiran.co.uk`'s renders an `imagePullSecrets` block, yet the
+latter pulls and runs today.
 
-```sh
-kubectl create namespace snipit
-```
+So there is nothing to create here. **If snip-it should ever get its own namespace, the `tls:`
+block in `helm/values.yaml` has to change first** — that is the decision, not the `kubectl` line.
+
+> ⚠️ This section used to say `kubectl create namespace snipit`, and the fleet config below used
+> `"targetNamespace": "snipit"`, while the config given on #23 used `balenthiran`. Both cannot be
+> right and the pairing failed either way round — see #23.
 
 **2. A database on the shared Postgres.** The cluster already runs one StatefulSet for all apps
 (`pg-postgresql` in the `data` namespace — see `balenthiran.co.uk/helm/postgres.yaml`). snip-it
@@ -35,7 +46,7 @@ kubectl exec -n data pg-postgresql-0 -- psql -U postgres -c "CREATE DATABASE sni
 **3. The app secret.** Both values are read as env vars by the backend deployment:
 
 ```sh
-kubectl create secret generic snipit-secrets -n snipit \
+kubectl create secret generic snipit-secrets -n balenthiran \
   --from-literal=DATABASE_URL="Host=pg-postgresql.data.svc.cluster.local;Port=5432;Database=snipit;Username=postgres;Password=<password>" \
   --from-literal=GROQ_API_KEY="<groq key>"
 ```
@@ -80,14 +91,18 @@ Deployment is driven by `oke-fleet`, which needs a four-line config file:
 
 ```json
 {
-  "appName": "snipit",
+  "appName": "snip-it",
   "repoURL": "https://github.com/jemmy8oy-northstar/snip-it.git",
   "chartPath": "helm",
-  "targetNamespace": "snipit"
+  "targetNamespace": "balenthiran"
 }
 ```
 
-That goes in `oke-fleet/config/snipit.json` as a PR into its `dev`, then a `dev` → `main`
+`targetNamespace` must match the namespace holding `balenthiran-tls` and `snipit-secrets` — see
+prerequisite 1. The ApplicationSet sets no `CreateNamespace=true`, so it never creates one either.
+`appName` only names the ArgoCD Application; it is the one field here that is free choice.
+
+That goes in `oke-fleet/config/snip-it.json` as a PR into its `dev`, then a `dev` → `main`
 promotion (the generator reads config from `main`). **Deliberately not raised yet** — registering
 it points ArgoCD at the cluster before the secrets above exist, which just produces a
 CrashLoopBackOff, and going live is a decision, not a chore. See "Open decisions".
