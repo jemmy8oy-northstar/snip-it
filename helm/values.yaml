@@ -25,8 +25,14 @@ ingress:
 # away on every restart — the job rows in Postgres survive, the media they point at doesn't.
 persistence:
   enabled: true
-  size: 20Gi
-  storageClass: ""              # "" = cluster default StorageClass
+  # 50Gi is OCI's FLOOR, not a capacity estimate. The Block Volume service will not provision
+  # below 50 GB, and OKE's docs require the storage request on an oci-bv PVC to be at least
+  # 50Gi — so the previous 20Gi would leave the PVC Pending forever. That failure is quiet and
+  # expensive to diagnose: the backend mounts this volume, and deployment.yaml uses
+  # strategy: Recreate for RWO, so the pod never starts and ArgoCD still reports the app Synced.
+  # https://docs.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengcreatingpersistentvolumeclaim_topic-Provisioning_PVCs_on_BV.htm
+  size: 50Gi
+  storageClass: ""              # "" = cluster default StorageClass (oci-bv on OKE)
 
 apps:
   - name: backend
