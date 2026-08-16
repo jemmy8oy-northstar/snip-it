@@ -69,6 +69,16 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewLimitReached"
+                }
+              }
+            }
           }
         }
       }
@@ -352,6 +362,17 @@
           "Failed"
         ]
       },
+      "PreviewLimitReached": {
+        "required": [
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "SystemStatusResponse": {
         "required": [
           "version",
@@ -403,34 +424,6 @@
           }
         }
       },
-      "TranscriptionJob": {
-        "required": [
-          "id",
-          "status",
-          "error",
-          "createdAt"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "$ref": "#/components/schemas/JobStatus"
-          },
-          "error": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
       "TranscriptSegment": {
         "required": [
           "index",
@@ -479,6 +472,34 @@
           },
           "kept": {
             "type": "boolean"
+          }
+        }
+      },
+      "TranscriptionJob": {
+        "required": [
+          "id",
+          "status",
+          "error",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

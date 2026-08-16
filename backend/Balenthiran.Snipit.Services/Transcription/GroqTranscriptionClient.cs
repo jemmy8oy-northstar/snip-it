@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Balenthiran.Snipit.Abstractions.DomainModels;
@@ -33,6 +34,15 @@ public class GroqTranscriptionClient(HttpClient httpClient, IOptions<GroqOptions
         using var response = await httpClient.SendAsync(request, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
+        if (response.StatusCode == HttpStatusCode.TooManyRequests || IsQuotaExhausted(response.StatusCode, body))
+        {
+            // The body is provider JSON quoting our own account's limits and usage. It goes in the
+            // log, never in the exception message — that message ends up on a public page.
+            throw new TranscriptionQuotaExceededException(
+                $"Transcription provider is rate limiting us ({(int)response.StatusCode}).",
+                RetryAfterFrom(response));
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             throw new InvalidOperationException($"Groq transcription request failed ({(int)response.StatusCode}): {body}");
@@ -42,6 +52,35 @@ public class GroqTranscriptionClient(HttpClient httpClient, IOptions<GroqOptions
             ?? throw new InvalidOperationException("Groq transcription response could not be parsed.");
 
         return MapToResult(apiResponse);
+    }
+
+    /// <summary>
+    /// Groq (like OpenAI, whose API shape it copies) signals a spent daily allowance with 429, but
+    /// a billing-level exhaustion arrives as 403 with a <c>*_quota_exceeded</c> code in the body.
+    /// Both mean "come back later", and both must read as a preview limit rather than a crash.
+    /// </summary>
+    internal static bool IsQuotaExhausted(HttpStatusCode statusCode, string body) =>
+        (statusCode == HttpStatusCode.Forbidden || statusCode == HttpStatusCode.PaymentRequired)
+        && (body.Contains("quota", StringComparison.OrdinalIgnoreCase)
+            || body.Contains("rate_limit", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Reads <c>Retry-After</c> in either of its legal forms: delta-seconds or an HTTP date.</summary>
+    internal static TimeSpan? RetryAfterFrom(HttpResponseMessage response)
+    {
+        var retryAfter = response.Headers.RetryAfter;
+        if (retryAfter is null)
+        {
+            return null;
+        }
+
+        if (retryAfter.Delta is { } delta)
+        {
+            return delta;
+        }
+
+        return retryAfter.Date is { } date && date > DateTimeOffset.UtcNow
+            ? date - DateTimeOffset.UtcNow
+            : null;
     }
 
     internal static GroqTranscriptionResult MapToResult(GroqApiResponse apiResponse) => new()

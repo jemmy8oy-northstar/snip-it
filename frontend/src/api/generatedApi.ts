@@ -96,6 +96,9 @@ export type TranscriptionJob = {
   error: null | string;
   createdAt: string;
 };
+export type PreviewLimitReached = {
+  message: string;
+};
 export type IFormFile = Blob;
 export type TranscriptSegment = {
   index: number;

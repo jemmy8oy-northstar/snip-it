@@ -2,8 +2,10 @@ using Balenthiran.Snipit.Abstractions.DataModels;
 using Balenthiran.Snipit.Abstractions.Services;
 using Balenthiran.Snipit.Database;
 using Balenthiran.Snipit.DomainModels.Models;
+using Balenthiran.Snipit.Services.Preview;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Balenthiran.Snipit.Services.Transcription;
 
@@ -16,6 +18,8 @@ public class TranscriptionJobProcessor(
     IFileStorageService fileStorage,
     IAudioExtractionService audioExtraction,
     IGroqTranscriptionClient groqClient,
+    IPreviewQuotaService quota,
+    IOptions<PreviewOptions> previewOptions,
     ILogger<TranscriptionJobProcessor> logger) : ITranscriptionJobProcessor
 {
     public async Task ProcessAsync(Guid jobId, CancellationToken cancellationToken = default)
@@ -53,11 +57,23 @@ public class TranscriptionJobProcessor(
             entity.TranscriptJson = TranscriptJsonSerializer.Serialize(transcript);
             entity.Status = JobStatus.Completed;
         }
+        catch (TranscriptionQuotaExceededException ex)
+        {
+            // Not a fault — snip-it is open to anyone and has simply run out of transcription
+            // capacity for now. Stop accepting uploads we already know we cannot process, and
+            // tell the visitor in words rather than handing them the provider's error object.
+            logger.LogWarning(ex, "Transcription job {JobId} hit the provider's rate limit.", jobId);
+            quota.RecordUpstreamLimitHit(ex.RetryAfter);
+            entity.Status = JobStatus.Failed;
+            entity.Error = previewOptions.Value.UpstreamLimitMessage;
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Transcription job {JobId} failed.", jobId);
             entity.Status = JobStatus.Failed;
-            entity.Error = ex.Message;
+            // ex.Message is rendered straight into the editor, which anyone can reach — so it says
+            // what went wrong without quoting file paths, connection strings or provider payloads.
+            entity.Error = "Something went wrong transcribing this video. Try uploading it again.";
         }
         finally
         {

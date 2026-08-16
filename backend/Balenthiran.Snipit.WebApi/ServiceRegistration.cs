@@ -2,9 +2,11 @@ using Balenthiran.Snipit.Abstractions.Services;
 using Balenthiran.Snipit.Services;
 using Balenthiran.Snipit.Services.Cutting;
 using Balenthiran.Snipit.Services.Infrastructure;
+using Balenthiran.Snipit.Services.Preview;
 using Balenthiran.Snipit.Services.Transcription;
 using Balenthiran.Snipit.Database;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Balenthiran.Snipit.WebApi;
 
@@ -34,6 +36,13 @@ public static class ServiceRegistration
         // Background job queue (in-process, single worker — see docs/specs for rationale)
         services.AddSingleton<IBackgroundJobQueue, BackgroundJobQueue>();
         services.AddHostedService<QueuedHostedService>();
+
+        // Public-preview limits. snip-it is deliberately open — no sign-in (#13) — so these are
+        // the only bound on what an unattended day can cost. Singleton because the upstream
+        // cooldown has to outlive the request that discovered it.
+        services.Configure<PreviewOptions>(configuration.GetSection(PreviewOptions.SectionName));
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<IPreviewQuotaService, PreviewQuotaService>();
 
         // Transcription pipeline
         services.Configure<GroqOptions>(options =>
