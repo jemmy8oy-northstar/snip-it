@@ -44,7 +44,7 @@ public static class CutRoutes
         return job is null ? TypedResults.NotFound() : TypedResults.Ok(ToResponse(job, mapper, http));
     }
 
-    private static async Task<Results<FileStreamHttpResult, NotFound, Conflict<string>>> DownloadAsync(
+    internal static async Task<Results<FileStreamHttpResult, NotFound, Conflict<string>>> DownloadAsync(
         Guid id, ICutService service, IFileStorageService fileStorage, CancellationToken ct)
     {
         var job = await service.GetJobAsync(id, ct);
@@ -58,7 +58,14 @@ public static class CutRoutes
             return TypedResults.Conflict($"Cut job is {job.Status} — output not ready yet.");
         }
 
-        var stream = fileStorage.OpenRead(job.OutputFilePath);
+        // Completed in the database is not the same as present on disk — the download link is
+        // handed out by this API, so a vanished output has to read as "gone", not "broken".
+        var stream = fileStorage.TryOpenRead(job.OutputFilePath);
+        if (stream is null)
+        {
+            return TypedResults.NotFound();
+        }
+
         return TypedResults.File(stream, "video/mp4", $"{id}.mp4");
     }
 

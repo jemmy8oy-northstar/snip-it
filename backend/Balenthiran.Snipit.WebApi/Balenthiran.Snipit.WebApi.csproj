@@ -19,6 +19,13 @@
   </Target>
 
   <ItemGroup>
+    <!-- Route handlers are internal so the tests can call them directly. Minimal APIs return
+         TypedResults, so a handler is an ordinary method whose return type names every status it
+         can produce — testable without a WebApplicationFactory or a live server. -->
+    <InternalsVisibleTo Include="Balenthiran.Snipit.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AutoMapper" Version="16.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.2">

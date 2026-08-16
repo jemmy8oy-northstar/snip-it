@@ -28,7 +28,8 @@ public class LocalDiskFileStorageServiceTests : IDisposable
 
         Assert.StartsWith("uploads/", key);
         Assert.EndsWith("_video.mp4", key);
-        using var readBack = sut.OpenRead(key);
+        using var readBack = sut.TryOpenRead(key);
+        Assert.NotNull(readBack);
         var buffer = new byte[3];
         Assert.Equal(3, await readBack.ReadAsync(buffer));
         Assert.Equal(new byte[] { 1, 2, 3 }, buffer);
@@ -68,6 +69,32 @@ public class LocalDiskFileStorageServiceTests : IDisposable
     {
         var ex = Assert.Throws<InvalidOperationException>(() => CreateSut().GetFullPath(escapingKey));
         Assert.Contains("outside the storage root", ex.Message);
+    }
+
+    [Fact]
+    public void TryOpenRead_ReturnsNullWhenTheFileIsGoneButItsFolderRemains()
+    {
+        var sut = CreateSut();
+        Directory.CreateDirectory(Path.Combine(_root, "uploads"));
+
+        Assert.Null(sut.TryOpenRead("uploads/never_written.mp4"));
+    }
+
+    [Fact]
+    public void TryOpenRead_ReturnsNullWhenTheWholeStorageRootIsGone()
+    {
+        // What an empty volume behind a surviving database looks like. This is a different
+        // exception from the case above (DirectoryNotFoundException, not FileNotFoundException),
+        // so catching only the obvious one would still crash here.
+        Assert.Null(CreateSut().TryOpenRead("uploads/never_written.mp4"));
+    }
+
+    [Fact]
+    public void TryOpenRead_StillThrowsForKeysResolvingOutsideRoot()
+    {
+        // Not "missing" — a broken caller or an attack. Answering null would file it under
+        // "nothing there" and hide it.
+        Assert.Throws<InvalidOperationException>(() => CreateSut().TryOpenRead("../../outside.txt"));
     }
 
     [Fact]

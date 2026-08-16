@@ -88,7 +88,7 @@ public static class TranscriptionRoutes
     /// Range processing is on and no download name is set, so browsers treat it as inline media and
     /// can seek — a <c>&lt;video&gt;</c> element cannot scrub a non-ranged attachment response.
     /// </summary>
-    private static async Task<Results<FileStreamHttpResult, NotFound>> GetSourceAsync(
+    internal static async Task<Results<FileStreamHttpResult, NotFound>> GetSourceAsync(
         Guid id,
         ITranscriptionService service,
         IFileStorageService fileStorage,
@@ -101,7 +101,14 @@ public static class TranscriptionRoutes
             return TypedResults.NotFound();
         }
 
-        var stream = fileStorage.OpenRead(job.SourceFilePath);
+        // The row can outlive the file it points at, so a missing source is a 404 about that
+        // recording, not a server error about the site.
+        var stream = fileStorage.TryOpenRead(job.SourceFilePath);
+        if (stream is null)
+        {
+            return TypedResults.NotFound();
+        }
+
         return TypedResults.File(
             stream,
             mediaTypeResolver.Resolve(job.SourceFilePath),
