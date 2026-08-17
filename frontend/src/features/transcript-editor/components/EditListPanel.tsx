@@ -57,7 +57,7 @@ export function EditListPanel({ ranges, onApply }: EditListPanelProps) {
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
-      {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
+      {error && <span style={{ fontSize: 11, color: 'var(--color-danger)' }}>{error}</span>}
       <div style={{ display: 'flex', gap: 6 }}>
         <button className="editor-btn" type="button" onClick={handleCopy} style={{ flex: 1 }}>
           {copyLabel}

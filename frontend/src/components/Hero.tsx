@@ -9,7 +9,7 @@ const Hero: React.FC = () => {
             <h1 style={{
                 fontSize: 'clamp(3.5rem, 8vw, 6rem)',
                 marginBottom: '24px',
-                background: 'linear-gradient(to bottom right, var(--text-primary) 30%, rgba(148, 163, 184, 0.5))',
+                background: 'linear-gradient(to bottom right, var(--text-primary) 30%, var(--color-text-subtle))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 lineHeight: 1.1
@@ -32,7 +32,7 @@ const Hero: React.FC = () => {
                     style={{
                         padding: '16px 32px',
                         background: 'var(--accent-primary)',
-                        color: '#fff',
+                        color: 'var(--color-on-primary)',
                         fontWeight: 600,
                         borderRadius: '50px',
                         border: 'none',

@@ -28,10 +28,10 @@
 
 .upload-status .error,
 .upload-status.error {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 /* A preview limit is not a fault — amber, not red, so it doesn't read as "you broke it". */
 .upload-status.notice {
-  color: #f59e0b;
+  color: var(--color-warning);
 }

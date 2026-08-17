@@ -1,0 +1,110 @@
+/*
+ * Casual theme — the everyday-apps voice (holiday / vocab / habits).
+ * Warm, friendly, calm-productive. Coral primary, teal for positive/streaks,
+ * sand-tinted neutrals, gentle elevation. No glass, no glow.
+ *
+ * Applied with `data-theme="casual"` on a root element; `data-mode="dark"`
+ * flips to dark. Light is the default when no mode is set.
+ */
+
+[data-theme='casual'] {
+  color-scheme: light;
+
+  /* Surfaces */
+  --color-bg: var(--warm-50);
+  --color-surface: var(--warm-0);
+  --color-surface-sunken: var(--warm-100);
+  --color-surface-hover: var(--warm-100);
+
+  /* Neutral tint — must read on both bg and surface, like the other -subtle roles */
+  --color-neutral-subtle: var(--warm-100);
+
+  /* Borders */
+  --color-border: var(--warm-200);
+  --color-border-strong: var(--warm-300);
+
+  /* Text */
+  --color-text: var(--warm-900);
+  --color-text-muted: var(--warm-600);
+  --color-text-subtle: var(--warm-500);
+
+  /* Primary — coral */
+  --color-primary: var(--coral-500);
+  --color-primary-hover: var(--coral-600);
+  --color-primary-active: var(--coral-700);
+  --color-primary-subtle: var(--coral-50);
+  --color-on-primary: var(--warm-0);
+
+  /* Secondary — teal */
+  --color-secondary: var(--teal-500);
+  --color-secondary-hover: var(--teal-600);
+  --color-secondary-subtle: var(--teal-50);
+  --color-on-secondary: var(--warm-0);
+
+  /* Status */
+  --color-success: var(--teal-600);
+  --color-success-subtle: var(--teal-50);
+  --color-on-success: var(--warm-0);
+  --color-danger: var(--red-500);
+  --color-danger-subtle: var(--red-100);
+  --color-on-danger: var(--warm-0);
+  --color-warning: var(--amber-500);
+  --color-warning-subtle: var(--amber-100);
+  --color-on-warning: var(--warm-900);
+
+  /* Focus */
+  --color-focus-ring: var(--coral-300);
+
+  /* Elevation — soft, warm-tinted shadows */
+  --shadow-sm: 0 1px 2px rgba(53, 48, 43, 0.06), 0 1px 3px rgba(53, 48, 43, 0.08);
+  --shadow-md: 0 2px 6px rgba(53, 48, 43, 0.07), 0 6px 16px rgba(53, 48, 43, 0.09);
+  --shadow-lg: 0 8px 24px rgba(53, 48, 43, 0.1), 0 16px 40px rgba(53, 48, 43, 0.12);
+}
+
+[data-theme='casual'][data-mode='dark'] {
+  color-scheme: dark;
+
+  --color-bg: var(--warm-950);
+  --color-surface: var(--warm-900);
+  --color-surface-sunken: var(--warm-950);
+  --color-surface-hover: var(--warm-800);
+
+  /* On dark you cannot go darker than the page, so the neutral tint lifts
+     instead: a warm translucent overlay reads on bg AND on a card surface. */
+  --color-neutral-subtle: rgba(243, 239, 234, 0.1);
+
+  --color-border: var(--warm-800);
+  --color-border-strong: var(--warm-700);
+
+  --color-text: var(--warm-50);
+  --color-text-muted: var(--warm-300);
+  --color-text-subtle: var(--warm-400);
+
+  /* Coral lightens slightly so it stays vivid on dark surfaces */
+  --color-primary: var(--coral-400);
+  --color-primary-hover: var(--coral-300);
+  --color-primary-active: var(--coral-200);
+  --color-primary-subtle: rgba(249, 115, 87, 0.14);
+  --color-on-primary: var(--warm-950);
+
+  --color-secondary: var(--teal-400);
+  --color-secondary-hover: var(--teal-300);
+  --color-secondary-subtle: rgba(47, 179, 163, 0.16);
+  --color-on-secondary: var(--warm-950);
+
+  --color-success: var(--teal-400);
+  --color-success-subtle: rgba(47, 179, 163, 0.16);
+  --color-on-success: var(--warm-950);
+  --color-danger: #ff6b70;
+  --color-danger-subtle: rgba(229, 72, 77, 0.18);
+  --color-on-danger: var(--warm-950);
+  --color-warning: var(--amber-500);
+  --color-warning-subtle: rgba(245, 165, 36, 0.18);
+  --color-on-warning: var(--warm-950);
+
+  --color-focus-ring: var(--coral-500);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.45), 0 6px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5), 0 16px 40px rgba(0, 0, 0, 0.6);
+}

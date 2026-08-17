@@ -19,13 +19,13 @@ export function EditorStats({ rangeCount, keptSeconds, cutSeconds }: EditorStats
       </div>
       <div>
         <div className="editor-stat-label">Kept</div>
-        <div className="editor-stat-value" style={{ color: '#10b981' }}>
+        <div className="editor-stat-value" style={{ color: 'var(--color-success)' }}>
           {fmt(keptSeconds)}
         </div>
       </div>
       <div>
         <div className="editor-stat-label">Cut</div>
-        <div className="editor-stat-value" style={{ color: '#ef4444' }}>
+        <div className="editor-stat-value" style={{ color: 'var(--color-danger)' }}>
           {fmt(cutSeconds)}
         </div>
       </div>
