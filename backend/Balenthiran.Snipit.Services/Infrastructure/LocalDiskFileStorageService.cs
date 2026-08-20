@@ -46,7 +46,25 @@ public class LocalDiskFileStorageService : IFileStorageService
         return fullPath;
     }
 
-    public Stream OpenRead(string storageKey) => File.OpenRead(GetFullPath(storageKey));
+    public Stream? TryOpenRead(string storageKey)
+    {
+        // Both are "not there": the file can go while its folder stays (one deletion), and the
+        // folder can go while the key stays (an empty volume behind a database that survived).
+        // A key that escapes the storage root is NOT this — GetFullPath still throws, because that
+        // is a broken caller or an attack, and answering "404" would hide it.
+        try
+        {
+            return File.OpenRead(GetFullPath(storageKey));
+        }
+        catch (FileNotFoundException)
+        {
+            return null;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>
     /// Client-supplied upload names must not influence the storage path: drop directory
