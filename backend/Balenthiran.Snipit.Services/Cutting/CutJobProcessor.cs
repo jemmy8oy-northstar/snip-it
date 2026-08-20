@@ -48,7 +48,13 @@ public class CutJobProcessor(
         {
             logger.LogError(ex, "Cut job {JobId} failed.", jobId);
             entity.Status = JobStatus.Failed;
-            entity.Error = ex.Message;
+            // Same rule TranscriptionJobProcessor already follows: Error is rendered straight into
+            // the editor, which anyone can reach, so it says what went wrong without quoting the
+            // exception. The detail is not lost — it goes to the log above, which is where a
+            // diagnosis belongs. It matters here because VideoCutService quotes FFmpeg's whole
+            // stderr into the message on purpose, and that stderr always names the absolute source
+            // and output paths under the storage root.
+            entity.Error = "Something went wrong cutting this video. Try again.";
         }
         finally
         {
