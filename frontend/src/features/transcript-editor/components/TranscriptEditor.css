@@ -4,11 +4,21 @@
 
 .editor {
   --editor-cut: var(--text-secondary);
-  --editor-accent: #10b981;
-  --editor-accent-bg: rgba(16, 185, 129, 0.12);
-  --editor-danger: #ef4444;
+
+  /* Was #10b981 green — a second primary, competing with the landing page's
+     indigo. Now teal, which studio names as "the selection/positive channel
+     every editor has", so the editor and the rest of the app finally agree. */
+  --editor-accent: var(--color-secondary);
+  --editor-accent-bg: var(--color-secondary-subtle);
+  --editor-danger: var(--color-danger);
+  --editor-warn: var(--color-warning);
+
+  /* NOT mapped, deliberately. The playhead highlight on the current word is a
+     transient "you are here" marker, not a warning, and the role contract has
+     no selection/highlight role to carry it — forcing it into --color-warning
+     would make an ordinary playhead read as an alert. Kept app-local until the
+     design system grows the role; raised on the adoption PR. */
   --editor-active: #fde047;
-  --editor-warn: #f59e0b;
 
   display: flex;
   gap: 20px;
@@ -35,6 +45,8 @@
 .editor-video {
   width: 100%;
   aspect-ratio: 16 / 9;
+  /* Letterbox behind the video stays true black on purpose: it frames footage
+     rather than being a themed surface, and tinting it biases what you see. */
   background: #000;
   border-radius: 12px;
   display: block;
@@ -72,14 +84,14 @@
   border-radius: 8px;
   border: none;
   background: var(--editor-accent);
-  color: #04120b;
+  color: var(--color-on-secondary);
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
 }
 .editor-btn-preview.playing {
   background: var(--editor-danger);
-  color: #fff;
+  color: var(--color-on-danger);
 }
 .editor-btn-preview:disabled {
   opacity: 0.4;
@@ -224,7 +236,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-lg);
   min-width: 220px;
 }
 
@@ -269,5 +281,5 @@
 }
 
 .editor-export-status .error {
-  color: #ef4444;
+  color: var(--color-danger);
 }
