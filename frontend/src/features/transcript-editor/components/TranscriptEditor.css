@@ -52,6 +52,21 @@
   display: block;
 }
 
+/* The <video> stays mounted with no source so the playback hooks keep their listeners; this is
+   what keeps it out of the layout while there is nothing to play. */
+.editor-video.hidden {
+  display: none;
+}
+
+.editor-video-missing {
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--text-secondary);
+}
+
 .editor-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -282,4 +297,8 @@
 
 .editor-export-status .error {
   color: var(--color-danger);
+}
+
+.editor-export-note {
+  opacity: 0.75;
 }

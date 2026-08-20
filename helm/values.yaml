@@ -20,13 +20,12 @@ ingress:
         - balenthiran.co.uk
       secretName: balenthiran-tls   # shared wildcard cert — no per-project TLS setup
 
-# Uploaded sources, extracted audio and exported cuts are written to disk by
-# LocalDiskFileStorageService. With no volume they live in the container's writable layer and go
-# away on every restart — the job rows in Postgres survive, the media they point at doesn't.
-persistence:
-  enabled: true
-  size: 20Gi
-  storageClass: ""              # "" = cluster default StorageClass
+# No persistence block, and no PVC template, on purpose (#22). snip-it keeps nothing of a
+# visitor's media between requests: the browser holds the video and re-sends it for the cut, so
+# everything written to disk belongs to one job or one response and is deleted by it. What is
+# left is scratch on the pod's own ephemeral disk, sized by *concurrent* work rather than
+# cumulative use — which also means no RWO volume, so no `strategy: Recreate` and no single-node
+# pinning. This chart is now field-for-field the shared template again.
 
 apps:
   - name: backend
@@ -37,7 +36,7 @@ apps:
       tag: 0.1.2                  # pinned by docker-build-push.yml's GitOps step on main
       pullPolicy: Always
     containerPort: 8080
-    replicas: 1                 # single writer: the storage PVC is RWO and the job queue is in-process
+    replicas: 1                 # the job queue is in-process, so a job must run on the pod that accepted it
     service:
       port: 80
       targetPort: 8080
@@ -48,12 +47,13 @@ apps:
       # The ingress forwards the whole path; UsePathBase strips this prefix before routing.
       - name: PathBase
         value: "/snipit"
-      - name: FileStorage__RootPath
-        value: "/data/storage"
+      # FileStorage__RootPath is deliberately unset: the app falls back to a directory under the
+      # OS temp path, which in this container is ephemeral disk. Setting it to a mount point was
+      # the whole reason a volume existed.
       - name: Uploads__MaxBytes
         value: "2147483648"     # 2 GiB — same ceiling as proxy-body-size above
       # snip-it is deliberately open to anyone (#13), so this cap is the only thing bounding
-      # what a bad day costs in transcription credits, ffmpeg CPU and PVC space. Site-wide per
+      # what a bad day costs in transcription credits and ffmpeg CPU. Site-wide per
       # UTC day, not per visitor — there is no sign-in, so there is nobody to count. Raise it
       # freely; the app degrades into a friendly "it's a preview, try tomorrow" message rather
       # than an error when it trips.
@@ -69,13 +69,6 @@ apps:
           secretKeyRef:
             name: snipit-secrets
             key: GROQ_API_KEY
-    volumeMounts:
-      - name: storage
-        mountPath: /data/storage
-    volumes:
-      - name: storage
-        persistentVolumeClaim:
-          claimName: snipit-storage
     resources: {}
     nodeSelector: {}
     tolerations: []
