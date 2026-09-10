@@ -8,6 +8,12 @@ namespace Balenthiran.Snipit.Abstractions.Services;
 /// </summary>
 public interface ICutService
 {
-    Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, IReadOnlyList<IDomainTranscriptWord> words, CancellationToken cancellationToken = default);
+    /// <param name="sourceStorageKey">
+    /// Scratch key for the video this cut runs against, uploaded with the request. It is not taken
+    /// from the transcription job any more: snip-it keeps no server-side copy between requests
+    /// (#22), so by the time a cut is submitted the transcribed file is long gone and the browser
+    /// — which still holds the file the visitor picked — sends it again.
+    /// </param>
+    Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, string sourceStorageKey, IReadOnlyList<IDomainTranscriptWord> words, CancellationToken cancellationToken = default);
     Task<IDomainCutJob?> GetJobAsync(Guid jobId, CancellationToken cancellationToken = default);
 }

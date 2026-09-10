@@ -58,6 +58,11 @@ public class CutJobProcessor(
         }
         finally
         {
+            // The source was uploaded for this job and this job alone (#22) — nothing else can
+            // ever read it, so it goes whether the cut worked or not. Deleting only on success
+            // would mean a failed cut is exactly the case that leaves a whole video behind.
+            fileStorage.Delete(entity.SourceFilePath);
+
             await dbContext.SaveChangesAsync(cancellationToken);
         }
     }

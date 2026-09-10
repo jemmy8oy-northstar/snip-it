@@ -161,30 +161,6 @@
         }
       }
     },
-    "/api/transcriptions/{id}/source": {
-      "get": {
-        "tags": [
-          "TranscriptionRoutes"
-        ],
-        "operationId": "GetTranscriptionSource",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
     "/api/cuts": {
       "post": {
         "tags": [
@@ -193,9 +169,31 @@
         "operationId": "SubmitCut",
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/CutRequest"
+                "required": [
+                  "file",
+                  "request"
+                ],
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "file": {
+                        "$ref": "#/components/schemas/IFormFile"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "request": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
               }
             }
           },
@@ -331,25 +329,6 @@
           }
         }
       },
-      "CutRequest": {
-        "required": [
-          "transcriptionJobId",
-          "words"
-        ],
-        "type": "object",
-        "properties": {
-          "transcriptionJobId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "words": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TranscriptWord"
-            }
-          }
-        }
-      },
       "IFormFile": {
         "type": "string",
         "format": "binary"
@@ -424,6 +403,34 @@
           }
         }
       },
+      "TranscriptionJob": {
+        "required": [
+          "id",
+          "status",
+          "error",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "TranscriptSegment": {
         "required": [
           "index",
@@ -472,34 +479,6 @@
           },
           "kept": {
             "type": "boolean"
-          }
-        }
-      },
-      "TranscriptionJob": {
-        "required": [
-          "id",
-          "status",
-          "error",
-          "createdAt"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "$ref": "#/components/schemas/JobStatus"
-          },
-          "error": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
           }
         }
       }

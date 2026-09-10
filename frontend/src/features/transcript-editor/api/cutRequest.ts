@@ -1,6 +1,19 @@
-import type { CutRequest, TranscriptWord as ApiTranscriptWord } from '../../../api/generatedApi';
+import type { TranscriptWord as ApiTranscriptWord } from '../../../api/generatedApi';
 import { computeKeptRuns } from '../editListLogic';
 import type { EditorWord } from '../types';
+
+/**
+ * The JSON that travels in the multipart `request` field of `POST /api/cuts`.
+ *
+ * Declared here rather than imported from `generatedApi`: the route takes a multipart body now
+ * (#22 — the browser re-sends the video with the cut), so `CutRequest` is no longer a JSON request
+ * schema in the OpenAPI document and the codegen no longer emits a type for it. The shape is
+ * unchanged, and the backend still deserialises it into the same `CutRequest` DTO.
+ */
+export type CutRequestPayload = {
+  transcriptionJobId: string;
+  words: ApiTranscriptWord[];
+};
 
 /**
  * Builds the `POST /api/cuts` payload from the editor's state.
@@ -24,7 +37,7 @@ export function buildCutRequest(
   words: EditorWord[],
   bufferSeconds: number,
   durationSeconds: number,
-): CutRequest {
+): CutRequestPayload {
   const payload: ApiTranscriptWord[] = words.map((word) => ({
     text: word.text,
     start: word.start,

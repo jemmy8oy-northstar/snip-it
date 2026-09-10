@@ -19,7 +19,10 @@ public static class TranscriptionRoutes
             .Produces<PreviewLimitReached>(StatusCodes.Status429TooManyRequests);
         group.MapGet("/{id:guid}", GetJobAsync).WithName("GetTranscriptionJob");
         group.MapGet("/{id:guid}/transcript", GetTranscriptAsync).WithName("GetTranscript");
-        group.MapGet("/{id:guid}/source", GetSourceAsync).WithName("GetTranscriptionSource");
+
+        // There is deliberately no GET /{id}/source (#22). The editor plays the file the visitor
+        // picked, straight out of the browser, so serving the video back would mean keeping a copy
+        // of it purely to hand it to the one person who already has it.
 
         return parentGroup;
     }
@@ -81,38 +84,5 @@ public static class TranscriptionRoutes
         };
 
         return TypedResults.Ok(dto);
-    }
-
-    /// <summary>
-    /// Streams the originally uploaded video back so the editor can scrub against the real source.
-    /// Range processing is on and no download name is set, so browsers treat it as inline media and
-    /// can seek — a <c>&lt;video&gt;</c> element cannot scrub a non-ranged attachment response.
-    /// </summary>
-    internal static async Task<Results<FileStreamHttpResult, NotFound>> GetSourceAsync(
-        Guid id,
-        ITranscriptionService service,
-        IFileStorageService fileStorage,
-        IUploadMediaTypeResolver mediaTypeResolver,
-        CancellationToken ct)
-    {
-        var job = await service.GetJobAsync(id, ct);
-        if (job is null || string.IsNullOrWhiteSpace(job.SourceFilePath))
-        {
-            return TypedResults.NotFound();
-        }
-
-        // The row can outlive the file it points at, so a missing source is a 404 about that
-        // recording, not a server error about the site.
-        var stream = fileStorage.TryOpenRead(job.SourceFilePath);
-        if (stream is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        return TypedResults.File(
-            stream,
-            mediaTypeResolver.Resolve(job.SourceFilePath),
-            fileDownloadName: null,
-            enableRangeProcessing: true);
     }
 }

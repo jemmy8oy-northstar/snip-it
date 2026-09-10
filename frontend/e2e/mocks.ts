@@ -27,10 +27,13 @@ const completedCutJob = {
  * Deterministic API mocks for the e2e suite.
  *
  * The editor now makes real requests, so these stub the real endpoints: the transcript
- * read, the cut submit/poll pair, and the source video. The transcript payload is the same
- * fixture the unit tests use, in the shape the backend actually returns
- * (`mockApiTranscript`), so a contract change breaks unit and e2e together rather than
- * letting one drift.
+ * read and the cut submit/poll pair. The transcript payload is the same fixture the unit
+ * tests use, in the shape the backend actually returns (`mockApiTranscript`), so a contract
+ * change breaks unit and e2e together rather than letting one drift.
+ *
+ * There is deliberately no stub for the source video any more (#22): the route is gone, and
+ * the editor plays the file out of the browser via an object URL. If a stub for it were left
+ * here, a regression that re-introduced the server round-trip would still pass this suite.
  */
 export async function mockApi(page: Page): Promise<void> {
   // The landing page polls the template's health endpoint; without a stub it
@@ -50,12 +53,6 @@ export async function mockApi(page: Page): Promise<void> {
 
   await page.route('**/api/transcriptions/*/transcript', (route) =>
     route.fulfill({ json: mockApiTranscript }),
-  );
-
-  // There is no real media in the repo: answer the <video> src with an empty 200 so the
-  // element mounts and the page renders, rather than hanging on a request nothing serves.
-  await page.route('**/api/transcriptions/*/source', (route) =>
-    route.fulfill({ status: 200, contentType: 'video/mp4', body: '' }),
   );
 
   await page.route('**/api/cuts', (route) => route.fulfill({ json: completedCutJob }));
