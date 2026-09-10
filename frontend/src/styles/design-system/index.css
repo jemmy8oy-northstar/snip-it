@@ -1,0 +1,7 @@
+/* Token entry — import order matters: primitives → semantic roles → themes → base. */
+@import './primitives.css';
+@import './semantic.css';
+@import './themes/casual.css';
+@import './themes/studio.css';
+@import './themes/professional.css';
+@import './base.css';

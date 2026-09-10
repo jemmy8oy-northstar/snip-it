@@ -4,6 +4,7 @@ import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import ScrollToTop from './components/ScrollToTop'
 import { ThemeProvider } from './context/ThemeContext'
+import { TranscriptEditorPage } from './features/transcript-editor/components/TranscriptEditorPage'
 
 function App() {
   return (
@@ -15,6 +16,8 @@ function App() {
           <main>
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/editor" element={<TranscriptEditorPage />} />
+              <Route path="/editor/:transcriptionJobId" element={<TranscriptEditorPage />} />
             </Routes>
           </main>
           <footer className="container" style={{

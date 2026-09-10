@@ -1,0 +1,77 @@
+/*
+ * Semantic tokens — the roles components actually consume.
+ *
+ * Two halves:
+ *  1. Shared DEFAULT roles (below) — shape, type and motion aliases. Every
+ *     theme inherits these unless it says otherwise: because themes are
+ *     `[data-theme="…"]` blocks that come later in the cascade at equal
+ *     specificity to `:root`, a theme MAY override any of them. Geometry and
+ *     type are most of what separates one theme's voice from another's, so
+ *     this is deliberate, not a loophole.
+ *  2. Theme-DEPENDENT colour roles — declared per theme in themes/*.css under a
+ *     `[data-theme="..."]` selector, with a mode override.
+ *     The full contract every theme must fill is documented at the bottom.
+ *
+ * Hard rule: a component may reference ONLY these `--color-*` / `--radius-*` /
+ * `--shadow-*` / `--focus-*` roles — never a primitive (`--coral-500`) directly.
+ * The day a component hardcodes a colour, theme-ability is broken.
+ */
+
+:root {
+  /* Shape roles */
+  --radius-control: var(--radius-md); /* buttons, inputs, badges */
+  --radius-surface: var(--radius-lg); /* cards, panels */
+  --radius-pill: var(--radius-full);
+
+  /* Type roles — components name the ROLE, never a family primitive, so a
+     theme can change the typographic voice without touching a component. */
+  --font-ui: var(--font-text); /* controls, body, dense UI */
+  --font-heading: var(--font-display); /* h1–h4 */
+  --font-numeric: var(--font-mono); /* figures that must align: timecode, metrics */
+
+  /* Focus */
+  --focus-ring-width: 3px;
+
+  /* Motion aliases */
+  --transition-control: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+/*
+ * ---- Colour-role contract (filled by every theme) -------------------------
+ * Backgrounds & surfaces
+ *   --color-bg               page background
+ *   --color-surface          card / panel surface
+ *   --color-surface-sunken   inset areas (e.g. input wells)
+ *   --color-surface-hover    surface hover state
+ *   --color-neutral-subtle   neutral tinted fill; unlike -sunken it must stay
+ *                            legible on BOTH bg and surface (dark modes lift
+ *                            with a translucent overlay rather than darken)
+ * Borders
+ *   --color-border           default hairline
+ *   --color-border-strong    emphasised / focused control border
+ * Text
+ *   --color-text             primary body text
+ *   --color-text-muted       secondary text
+ *   --color-text-subtle      tertiary / placeholder text
+ * Primary (coral)
+ *   --color-primary / -hover / -active   solid brand fill
+ *   --color-primary-subtle               tinted background
+ *   --color-on-primary                   text/icon on a primary fill
+ * Secondary (teal)
+ *   --color-secondary / -hover / -subtle / --color-on-secondary
+ * Status
+ *   --color-success / -subtle / --color-on-success
+ *   --color-danger  / -subtle / --color-on-danger
+ *   --color-warning / -subtle / --color-on-warning
+ * Focus & elevation
+ *   --color-focus-ring       focus outline colour
+ *   --shadow-sm / -md / -lg  the elevation system (a theme may make this flat)
+ *
+ * Optional per theme (inherit the defaults above if unset)
+ *   --radius-control / --radius-surface / --radius-pill
+ *   --font-ui / --font-heading / --font-numeric
+ * -------------------------------------------------------------------------- */

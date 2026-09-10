@@ -47,6 +47,7 @@ A `dotnet new` monorepo template for .NET 10 + React 19 projects. Every new proj
 | `docs/specs/openapi-codegen.md` | OpenAPI → RTK Query codegen workflow |
 | `docs/specs/testing-strategy.md` | Unit tests, in-process integration tests, Vitest |
 | `docs/specs/sdd-workflow.md` | 7-phase Spec Driven Development process |
+| `docs/specs/deployment.md` | Images → Helm → ArgoCD, cluster prerequisites, what each setting is for |
 | `docs/ai-workflow.md` | End-to-end AI-assisted project workflow and phase structure |
 | `.agents/rules/project.md` | Coding conventions, branch strategy, GitHub workflow rules |
 
@@ -81,7 +82,8 @@ cd backend && dotnet run --project Balenthiran.Snipit.WebApi
 cd frontend && npm run dev
 # App: http://localhost:5173
 
-# Regenerate API client after backend changes
+# Regenerate API client after backend changes (refresh schema, then codegen — no server needed)
+cd backend && dotnet build Balenthiran.Snipit.WebApi -c Debug   # refreshes committed openapi.json
 cd frontend && npm run codegen
 ```
 

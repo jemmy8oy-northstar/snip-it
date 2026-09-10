@@ -111,10 +111,12 @@ VITE_API_URL=http://localhost:5000
 
 ### Regenerate the API client
 
-Run after any backend endpoint change to keep frontend types in sync:
+After any backend endpoint change, refresh the committed OpenAPI schema with a Debug backend build
+(generated in-process — no running server or database needed), then run codegen:
 
 ```bash
-cd frontend && npm run codegen
+cd backend && dotnet build Balenthiran.Snipit.WebApi -c Debug   # refreshes openapi.json
+cd ../frontend && npm run codegen                                # reads it, works offline
 ```
 
 See `docs/specs/openapi-codegen.md` for the full workflow.

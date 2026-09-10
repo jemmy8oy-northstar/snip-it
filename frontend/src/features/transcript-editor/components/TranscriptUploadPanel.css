@@ -1,0 +1,37 @@
+.upload-panel {
+  max-width: 520px;
+  /* The navbar is `position: fixed; top: 24px` and this page is not wrapped in .container,
+     so the card needs the same 120px clearance .editor uses or it sits under the nav pill. */
+  margin: 120px auto 48px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.upload-panel h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.upload-hint,
+.upload-status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.upload-panel input[type='file'] {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.upload-status .error,
+.upload-status.error {
+  color: var(--color-danger);
+}
+
+/* A preview limit is not a fault — amber, not red, so it doesn't read as "you broke it". */
+.upload-status.notice {
+  color: var(--color-warning);
+}

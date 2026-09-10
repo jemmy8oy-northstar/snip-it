@@ -23,6 +23,13 @@ RUN dotnet publish Balenthiran.Snipit.WebApi/Balenthiran.Snipit.WebApi.csproj -c
 # Stage 2: Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine
 WORKDIR /app
+
+# Both pipelines shell out to FFmpeg — AudioExtractionService before the Groq call, and
+# VideoCutService for the export — via ProcessRunner, which launches the bare command name
+# "ffmpeg" and so resolves it from PATH. The base image has no ffmpeg, so without this every
+# transcription and every cut fails at run time (the app itself starts up perfectly happily).
+RUN apk add --no-cache ffmpeg
+
 COPY --from=build /app/publish .
 
 # Expose port (default ASP.NET Core port is 8080 in .NET 8+)

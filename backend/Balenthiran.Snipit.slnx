@@ -6,4 +6,5 @@
   <Project Path="Balenthiran.Snipit.DomainModels/Balenthiran.Snipit.DomainModels.csproj" />
   <Project Path="Balenthiran.Snipit.EntityModels/Balenthiran.Snipit.EntityModels.csproj" />
   <Project Path="Balenthiran.Snipit.Services/Balenthiran.Snipit.Services.csproj" />
+  <Project Path="Balenthiran.Snipit.Tests/Balenthiran.Snipit.Tests.csproj" />
 </Solution>
