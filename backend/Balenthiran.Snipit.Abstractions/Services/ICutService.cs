@@ -14,6 +14,7 @@ public interface ICutService
     /// (#22), so by the time a cut is submitted the transcribed file is long gone and the browser
     /// — which still holds the file the visitor picked — sends it again.
     /// </param>
-    Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, string sourceStorageKey, IReadOnlyList<IDomainTranscriptWord> words, CancellationToken cancellationToken = default);
+    /// <param name="maxPauseSeconds">See <see cref="IKeepRangeCalculator.Calculate"/>; must be positive when set.</param>
+    Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, string sourceStorageKey, IReadOnlyList<IDomainTranscriptWord> words, double? maxPauseSeconds = null, CancellationToken cancellationToken = default);
     Task<IDomainCutJob?> GetJobAsync(Guid jobId, CancellationToken cancellationToken = default);
 }
