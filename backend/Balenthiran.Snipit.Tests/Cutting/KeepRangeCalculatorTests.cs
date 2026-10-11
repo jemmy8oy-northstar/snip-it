@@ -68,4 +68,52 @@ public class KeepRangeCalculatorTests
 
         Assert.Empty(ranges);
     }
+
+    [Fact]
+    public void Calculate_WithoutMaxPause_KeepsLongPauses()
+    {
+        var words = new[] { Word(0, 1, true), Word(5, 6, true) };
+
+        var ranges = _sut.Calculate(words);
+
+        Assert.Single(ranges);
+        Assert.Equal(new DomainKeepRange(0, 6), ranges[0]);
+    }
+
+    [Fact]
+    public void Calculate_PauseLongerThanMax_SplitsRun()
+    {
+        var words = new[]
+        {
+            Word(0, 1, true),
+            Word(1.3, 2, true), // 0.3s gap — kept
+            Word(4, 5, true),   // 2s gap — dead air, cut
+        };
+
+        var ranges = _sut.Calculate(words, maxPauseSeconds: 0.5);
+
+        Assert.Equal(2, ranges.Count);
+        Assert.Equal(new DomainKeepRange(0, 2), ranges[0]);
+        Assert.Equal(new DomainKeepRange(4, 5), ranges[1]);
+    }
+
+    [Fact]
+    public void Calculate_PauseExactlyMax_IsKept()
+    {
+        var words = new[] { Word(0, 1, true), Word(1.5, 2, true) };
+
+        var ranges = _sut.Calculate(words, maxPauseSeconds: 0.5);
+
+        Assert.Single(ranges);
+    }
+
+    [Fact]
+    public void Calculate_LongPauseAcrossRemovedWord_DoesNotAddEmptyRange()
+    {
+        var words = new[] { Word(0, 1, true), Word(1, 2, false), Word(9, 10, true) };
+
+        var ranges = _sut.Calculate(words, maxPauseSeconds: 0.5);
+
+        Assert.Equal([new DomainKeepRange(0, 1), new DomainKeepRange(9, 10)], ranges);
+    }
 }

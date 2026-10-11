@@ -80,6 +80,33 @@ public class CutServiceTests
         Assert.Empty(dbContext.CutJobs);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task SubmitAsync_NonPositiveMaxPause_ThrowsWithoutPersisting(double maxPauseSeconds)
+    {
+        await using var dbContext = CreateInMemoryDbContext();
+        var transcriptionJob = await SeedTranscriptionJobAsync(dbContext);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CreateSut(dbContext).SubmitAsync(transcriptionJob.Id, "cut-sources/fresh.mp4", [Word(0, 1, true)], maxPauseSeconds));
+
+        Assert.Empty(dbContext.CutJobs);
+    }
+
+    [Fact]
+    public async Task SubmitAsync_MaxPause_CutsDeadAirFromStoredKeepRanges()
+    {
+        await using var dbContext = CreateInMemoryDbContext();
+        var transcriptionJob = await SeedTranscriptionJobAsync(dbContext);
+
+        var job = await CreateSut(dbContext)
+            .SubmitAsync(transcriptionJob.Id, "cut-sources/fresh.mp4", [Word(0, 1, true), Word(4, 5, true)], 0.5);
+
+        var ranges = KeepRangeJsonSerializer.Deserialize(dbContext.CutJobs.Single(j => j.Id == job.Id).KeepRangesJson);
+        Assert.Equal(2, ranges.Count);
+    }
+
     private static async Task<TranscriptionJobEntity> SeedTranscriptionJobAsync(
         AppDbContext dbContext, string sourceFilePath = "uploads/x.mp4")
     {

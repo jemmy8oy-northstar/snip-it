@@ -17,7 +17,7 @@ public class CutService(
     IBackgroundJobQueue jobQueue,
     IMapper mapper) : ICutService
 {
-    public async Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, string sourceStorageKey, IReadOnlyList<IDomainTranscriptWord> words, CancellationToken cancellationToken = default)
+    public async Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, string sourceStorageKey, IReadOnlyList<IDomainTranscriptWord> words, double? maxPauseSeconds = null, CancellationToken cancellationToken = default)
     {
         // The transcription job is still checked, even though the media no longer comes from it:
         // it is what the cut is *of*, the row carries the foreign key, and a cut against a
@@ -26,7 +26,12 @@ public class CutService(
             .FirstOrDefaultAsync(j => j.Id == transcriptionJobId, cancellationToken)
             ?? throw new InvalidOperationException($"Transcription job {transcriptionJobId} not found.");
 
-        var keepRanges = keepRangeCalculator.Calculate(words);
+        if (maxPauseSeconds is <= 0)
+        {
+            throw new InvalidOperationException("maxPauseSeconds must be positive — a zero gap would split every word apart.");
+        }
+
+        var keepRanges = keepRangeCalculator.Calculate(words, maxPauseSeconds);
         if (keepRanges.Count == 0)
         {
             throw new InvalidOperationException("No kept words in the cut request — nothing to cut.");

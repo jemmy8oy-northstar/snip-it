@@ -42,7 +42,7 @@ public static class CutRoutes
     /// that means <c>words[0].start</c>-style keys on both sides; one JSON field keeps the payload
     /// the editor already builds intact and unambiguous.
     /// </remarks>
-    private static async Task<Results<Ok<CutJobResponse>, BadRequest<string>>> SubmitAsync(
+    internal static async Task<Results<Ok<CutJobResponse>, BadRequest<string>>> SubmitAsync(
         IFormFile file,
         [FromForm] string request,
         ICutService service,
@@ -80,7 +80,7 @@ public static class CutRoutes
 
         try
         {
-            var job = await service.SubmitAsync(cutRequest.TranscriptionJobId, sourceStorageKey, words, ct);
+            var job = await service.SubmitAsync(cutRequest.TranscriptionJobId, sourceStorageKey, words, cutRequest.MaxPauseSeconds, ct);
             return TypedResults.Ok(ToResponse(job, mapper, http));
         }
         catch (InvalidOperationException ex)
