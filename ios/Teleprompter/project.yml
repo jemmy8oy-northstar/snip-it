@@ -1,0 +1,45 @@
+# The teleprompter app. Generate the Xcode project from this file rather than
+# committing one: `brew install xcodegen`, then `xcodegen` in this directory.
+# The generated Teleprompter.xcodeproj is ignored by git.
+name: Teleprompter
+options:
+  bundleIdPrefix: uk.co.balenthiran
+  deploymentTarget:
+    iOS: "17.0"
+
+packages:
+  # WhisperKit's repo was renamed argmax-oss-swift; the product is still WhisperKit.
+  WhisperKit:
+    url: https://github.com/argmaxinc/argmax-oss-swift
+    from: 1.1.1
+  ScriptFollower:
+    path: ../ScriptFollower
+
+targets:
+  Teleprompter:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    dependencies:
+      - package: WhisperKit
+        product: WhisperKit
+      - package: ScriptFollower
+        product: ScriptFollower
+      - package: ScriptFollower
+        product: SnipItClient
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Teleprompter
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSCameraUsageDescription: The teleprompter films you while you read.
+        NSMicrophoneUsageDescription: The teleprompter listens so the script follows you, and records your voice with the video.
+        NSPhotoLibraryAddUsageDescription: Saves a finished take to your photos.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: uk.co.balenthiran.teleprompter
+        # Swift 5 mode: WhisperKit itself is built in Swift 5 mode and is not Sendable.
+        SWIFT_VERSION: "5.0"
+        # Set your team in Xcode (Signing & Capabilities); it is not committed.
+        CODE_SIGN_STYLE: Automatic
