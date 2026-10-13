@@ -4,11 +4,13 @@ import SwiftUI
 enum RecorderError: LocalizedError {
     case denied
     case noCamera
+    case notRecording
 
     var errorDescription: String? {
         switch self {
         case .denied: "Camera and microphone access are needed. Allow them in Settings."
         case .noCamera: "The front camera or the microphone is not available."
+        case .notRecording: "The take did not record. Try again."
         }
     }
 }
@@ -67,6 +69,9 @@ final class CameraRecorder: NSObject, AVCaptureFileOutputRecordingDelegate, @unc
         session.addInput(video)
         session.addInput(sound)
         session.addOutput(output)
+        // Without this a portrait take is saved landscape: the movie output records the
+        // sensor's orientation unless its connection is told otherwise.
+        output.connection(with: .video)?.videoRotationAngle = 90
         configured = true
     }
 
@@ -86,6 +91,12 @@ final class CameraRecorder: NSObject, AVCaptureFileOutputRecordingDelegate, @unc
     func stopRecording() async throws -> URL {
         try await withCheckedThrowingContinuation { done in
             queue.async {
+                // A recording that never started, or already failed, gets no second delegate
+                // call, so waiting for one would hang the stop button forever.
+                guard self.output.isRecording else {
+                    done.resume(throwing: RecorderError.notRecording)
+                    return
+                }
                 self.finished = done
                 self.output.stopRecording()
             }

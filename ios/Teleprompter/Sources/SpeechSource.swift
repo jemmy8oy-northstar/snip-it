@@ -33,6 +33,18 @@ final class WhisperKitSpeechSource: SpeechSource {
         self.model = model
     }
 
+    /// One engine across prompter runs, so the model loads once rather than on every run.
+    /// Picking a different model in Settings gets a fresh one.
+    @MainActor
+    static func shared(model: String) -> WhisperKitSpeechSource {
+        if let cached, cached.model == model { return cached }
+        let source = WhisperKitSpeechSource(model: model)
+        cached = source
+        return source
+    }
+
+    @MainActor private static var cached: WhisperKitSpeechSource?
+
     func start(heard: @escaping @Sendable (String) -> Void, status: @escaping @Sendable (String) -> Void) async throws {
         if whisperKit == nil {
             status("Loading the speech model. The first time, this downloads it…")

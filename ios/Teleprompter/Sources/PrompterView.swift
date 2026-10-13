@@ -10,6 +10,8 @@ final class PrompterSession {
     let recorder = CameraRecorder()
     private(set) var currentLine = 0
     private(set) var isRecording = false
+    /// Camera configured and running. Recording before then starts nothing.
+    private(set) var isReady = false
     private(set) var status: String?
 
     private var follower: ScriptFollower
@@ -28,6 +30,7 @@ final class PrompterSession {
         do {
             try await recorder.configure()
             recorder.startRunning()
+            isReady = true
             try await speech.start(
                 heard: { [weak self] text in Task { @MainActor in self?.hear(text) } },
                 status: { [weak self] text in Task { @MainActor in self?.status = text.isEmpty ? nil : text } }
@@ -80,7 +83,7 @@ struct PrompterView: View {
     @Environment(\.dismiss) private var dismiss
 
     init(script: String, model: String) {
-        _session = State(initialValue: PrompterSession(script: script, speech: WhisperKitSpeechSource(model: model)))
+        _session = State(initialValue: PrompterSession(script: script, speech: WhisperKitSpeechSource.shared(model: model)))
     }
 
     var body: some View {
@@ -164,6 +167,8 @@ struct PrompterView: View {
                     .frame(width: 80, height: 80)
                     .overlay(Circle().stroke(.white, lineWidth: 4))
             }
+            .disabled(!session.isReady)
+            .opacity(session.isReady ? 1 : 0.4)
             .accessibilityLabel(session.isRecording ? "Stop recording" : "Record")
 
             Spacer()
