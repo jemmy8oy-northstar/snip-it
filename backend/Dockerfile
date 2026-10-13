@@ -11,7 +11,12 @@ COPY Balenthiran.Snipit.DomainModels/*.csproj ./Balenthiran.Snipit.DomainModels/
 COPY Balenthiran.Snipit.Services/*.csproj ./Balenthiran.Snipit.Services/
 COPY Balenthiran.Snipit.EntityModels/*.csproj ./Balenthiran.Snipit.EntityModels/ 
 COPY Balenthiran.Snipit.Database/*.csproj ./Balenthiran.Snipit.Database/
+COPY Balenthiran.Snipit.Tests/*.csproj ./Balenthiran.Snipit.Tests/
 # Restore dependencies
+# NOTE: `dotnet restore` with no argument restores Balenthiran.Snipit.slnx, so EVERY project
+# listed there must have its .csproj copied above — including test projects, which are
+# not published. Adding a project to the solution without a COPY line here breaks the
+# image build only, and only on a push to main, long after CI has gone green.
 RUN dotnet restore
 
 # Copy all source files
