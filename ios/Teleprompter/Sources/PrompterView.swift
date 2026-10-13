@@ -16,7 +16,10 @@ final class PrompterSession {
     private let speech: any SpeechSource
 
     init(script: String, speech: any SpeechSource) {
-        follower = ScriptFollower(script: script)
+        // Read the lines off a local: @Observable turns `follower` into an accessor, which
+        // cannot be read before every stored property is set.
+        let follower = ScriptFollower(script: script)
+        self.follower = follower
         lines = follower.lines
         self.speech = speech
     }
