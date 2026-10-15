@@ -1,0 +1,27 @@
+name: iOS package
+
+# The teleprompter's script follower (ios/ScriptFollower) is plain Swift with no
+# Apple frameworks, so its tests run on Linux in the official Swift image. The
+# SwiftUI app around it needs macOS and is not built here.
+#
+# Path-filtered on ios/ only: a PR that touches no Swift does not start a Swift
+# job, and this workflow alone (with no package yet) does not run a job that
+# would have nothing to test.
+on:
+  pull_request:
+    branches: ["**"]
+    paths: ["ios/**"]
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  script-follower:
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test
+        run: swift test --package-path ios/ScriptFollower
