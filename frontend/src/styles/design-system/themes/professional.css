@@ -1,0 +1,97 @@
+/*
+ * Professional theme — STUB, to prove the theme swap.
+ *
+ * Same components, different role values: a restrained indigo accent on cool
+ * slate neutrals. It fills the exact same colour-role contract as casual, so
+ * flipping `data-theme="casual"` → `data-theme="professional"` re-skins the
+ * whole UI with zero component changes. Flesh this out when a professional-
+ * brand app actually needs it.
+ */
+
+[data-theme='professional'] {
+  color-scheme: light;
+
+  --color-bg: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f1f3f6;
+  --color-surface-hover: #eef1f5;
+  --color-neutral-subtle: #eceff4;
+
+  --color-border: #e2e6ec;
+  --color-border-strong: #cbd2dc;
+
+  --color-text: #1a2230;
+  --color-text-muted: #5a6473;
+  --color-text-subtle: #8a94a3;
+
+  --color-primary: #4f6bed;
+  --color-primary-hover: #3f57d4;
+  --color-primary-active: #3346b0;
+  --color-primary-subtle: #eef1fd;
+  --color-on-primary: #ffffff;
+
+  --color-secondary: #0e9f8e;
+  --color-secondary-hover: #0b8577;
+  --color-secondary-subtle: #e6f6f4;
+  --color-on-secondary: #ffffff;
+
+  --color-success: #12855f;
+  --color-success-subtle: #e4f5ee;
+  --color-on-success: #ffffff;
+  --color-danger: #d92d3a;
+  --color-danger-subtle: #fce7e8;
+  --color-on-danger: #ffffff;
+  --color-warning: #c77b0a;
+  --color-warning-subtle: #fbf0d9;
+  --color-on-warning: #ffffff;
+
+  --color-focus-ring: #a9b7f5;
+
+  --shadow-sm: 0 1px 2px rgba(20, 30, 48, 0.06), 0 1px 3px rgba(20, 30, 48, 0.08);
+  --shadow-md: 0 2px 6px rgba(20, 30, 48, 0.07), 0 6px 16px rgba(20, 30, 48, 0.09);
+  --shadow-lg: 0 8px 24px rgba(20, 30, 48, 0.1), 0 16px 40px rgba(20, 30, 48, 0.12);
+}
+
+[data-theme='professional'][data-mode='dark'] {
+  color-scheme: dark;
+
+  --color-bg: #0d1017;
+  --color-surface: #161b25;
+  --color-surface-sunken: #0d1017;
+  --color-surface-hover: #1f2634;
+  --color-neutral-subtle: rgba(226, 232, 240, 0.1);
+
+  --color-border: #262e3d;
+  --color-border-strong: #38425538;
+
+  --color-text: #eef1f6;
+  --color-text-muted: #b0b9c7;
+  --color-text-subtle: #8a94a3;
+
+  --color-primary: #8296f4;
+  --color-primary-hover: #9aabf7;
+  --color-primary-active: #b3c0f9;
+  --color-primary-subtle: rgba(79, 107, 237, 0.18);
+  --color-on-primary: #0d1017;
+
+  --color-secondary: #3bc4b2;
+  --color-secondary-hover: #58d0c1;
+  --color-secondary-subtle: rgba(14, 159, 142, 0.2);
+  --color-on-secondary: #0d1017;
+
+  --color-success: #35c48c;
+  --color-success-subtle: rgba(18, 133, 95, 0.22);
+  --color-on-success: #0d1017;
+  --color-danger: #f26a72;
+  --color-danger-subtle: rgba(217, 45, 58, 0.22);
+  --color-on-danger: #0d1017;
+  --color-warning: #e0a53a;
+  --color-warning-subtle: rgba(199, 123, 10, 0.22);
+  --color-on-warning: #0d1017;
+
+  --color-focus-ring: #4f6bed;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.55), 0 6px 16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6), 0 16px 40px rgba(0, 0, 0, 0.7);
+}

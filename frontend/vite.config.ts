@@ -13,6 +13,15 @@ export default defineConfig({
   ],
   server: {
     proxy: {
+      // The app now calls the API under its own base path (see src/api/apiBase.ts), so the dev
+      // server has to forward `/snipit/api` too — and strip the prefix, because a locally-run
+      // backend has no PathBase configured and serves the routes at `/api`.
+      '/snipit/api': {
+        target: 'http://localhost:5257',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/snipit/, ''),
+      },
       '/api': {
         target: 'http://localhost:5257',
         changeOrigin: true,

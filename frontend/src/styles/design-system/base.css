@@ -1,0 +1,36 @@
+/*
+ * Base — minimal, opt-in defaults scoped to a themed root.
+ *
+ * Scoped to `[data-theme]` so importing the stylesheet never restyles an app
+ * that hasn't opted a subtree into a theme. Sets the body font/colour and a
+ * sensible box-model + focus baseline for the themed region.
+ */
+
+[data-theme] {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+[data-theme] *,
+[data-theme] *::before,
+[data-theme] *::after {
+  box-sizing: border-box;
+}
+
+[data-theme] :where(h1, h2, h3, h4) {
+  font-family: var(--font-heading);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  margin: 0;
+}
+
+/* Consistent, on-brand keyboard focus for anything focusable in a theme. */
+[data-theme] :where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

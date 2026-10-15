@@ -11,7 +11,7 @@ const Home = () => {
         <div className="glass" style={{ padding: '32px', maxWidth: '480px', margin: '0 auto' }}>
           <h2 style={{ marginBottom: '16px', fontSize: '1.25rem' }}>API Status</h2>
           {isLoading && <p style={{ color: 'var(--text-secondary)' }}>Connecting...</p>}
-          {isError && <p style={{ color: '#f87171' }}>Could not reach the API. Is the backend running?</p>}
+          {isError && <p style={{ color: 'var(--color-danger)' }}>Could not reach the API. Is the backend running?</p>}
           {status !== undefined && (
             <pre style={{
               color: 'var(--text-secondary)',

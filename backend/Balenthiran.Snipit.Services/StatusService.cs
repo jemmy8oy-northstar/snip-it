@@ -14,7 +14,7 @@ public class StatusService : IStatusService
             Version = "1.1.0-alpha",
             LastUpdated = DateTime.UtcNow
         };
-        
+
         return Task.FromResult(model);
     }
 }

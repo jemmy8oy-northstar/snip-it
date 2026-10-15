@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/theme-context';
 
 const ThemeToggle: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
@@ -35,7 +35,7 @@ const ThemeToggle: React.FC = () => {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        color: '#fbbf24',
+                        color: 'var(--color-warning)',
                         transition: 'all 0.5s ease',
                         opacity: theme === 'light' ? 0 : 1,
                         transform: theme === 'light' ? 'rotate(90deg) scale(0)' : 'rotate(0) scale(1)'
@@ -66,7 +66,7 @@ const ThemeToggle: React.FC = () => {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        color: '#6366f1',
+                        color: 'var(--color-secondary)',
                         transition: 'all 0.5s ease',
                         opacity: theme === 'light' ? 1 : 0,
                         transform: theme === 'light' ? 'rotate(0) scale(1)' : 'rotate(-90deg) scale(0)'
