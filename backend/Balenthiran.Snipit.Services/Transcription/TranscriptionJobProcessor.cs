@@ -82,6 +82,11 @@ public class TranscriptionJobProcessor(
                 File.Delete(wavPath);
             }
 
+            // The uploaded video has no reader left once the audio is extracted (#22): the editor
+            // plays the copy still sitting in the visitor's browser, and a cut re-sends it. Holding
+            // it any longer is the server-side saving this app deliberately does not do.
+            fileStorage.Delete(entity.SourceFilePath);
+
             await dbContext.SaveChangesAsync(cancellationToken);
         }
     }

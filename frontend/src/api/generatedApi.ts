@@ -25,19 +25,11 @@ const injectedRtkApi = api.injectEndpoints({
         url: `/api/transcriptions/${queryArg.id}/transcript`,
       }),
     }),
-    getTranscriptionSource: build.query<
-      GetTranscriptionSourceApiResponse,
-      GetTranscriptionSourceApiArg
-    >({
-      query: (queryArg) => ({
-        url: `/api/transcriptions/${queryArg.id}/source`,
-      }),
-    }),
     submitCut: build.mutation<SubmitCutApiResponse, SubmitCutApiArg>({
       query: (queryArg) => ({
         url: `/api/cuts`,
         method: "POST",
-        body: queryArg.cutRequest,
+        body: queryArg.body,
       }),
     }),
     getCutJob: build.query<GetCutJobApiResponse, GetCutJobApiArg>({
@@ -68,13 +60,13 @@ export type GetTranscriptApiResponse = /** status 200 OK */ Transcript;
 export type GetTranscriptApiArg = {
   id: string;
 };
-export type GetTranscriptionSourceApiResponse = unknown;
-export type GetTranscriptionSourceApiArg = {
-  id: string;
-};
 export type SubmitCutApiResponse = /** status 200 OK */ CutJobResponse;
 export type SubmitCutApiArg = {
-  cutRequest: CutRequest;
+  body: {
+    file: IFormFile;
+  } & {
+    request: string;
+  };
 };
 export type GetCutJobApiResponse = /** status 200 OK */ CutJobResponse;
 export type GetCutJobApiArg = {
@@ -125,16 +117,11 @@ export type CutJobResponse = {
   error: null | string;
   createdAt: string;
 };
-export type CutRequest = {
-  transcriptionJobId: string;
-  words: TranscriptWord[];
-};
 export const {
   useGetStatusQuery,
   useSubmitTranscriptionMutation,
   useGetTranscriptionJobQuery,
   useGetTranscriptQuery,
-  useGetTranscriptionSourceQuery,
   useSubmitCutMutation,
   useGetCutJobQuery,
   useDownloadCutQuery,
