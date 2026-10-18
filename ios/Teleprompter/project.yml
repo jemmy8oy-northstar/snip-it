@@ -3,7 +3,7 @@
 # The generated Teleprompter.xcodeproj is ignored by git.
 name: Teleprompter
 options:
-  bundleIdPrefix: com.balenthiran
+  bundleIdPrefix: uk.co.balenthiran
   deploymentTarget:
     iOS: "17.0"
 
@@ -38,7 +38,7 @@ targets:
         NSPhotoLibraryAddUsageDescription: Saves a finished take to your photos.
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.balenthiran.snipit
+        PRODUCT_BUNDLE_IDENTIFIER: uk.co.balenthiran.snipit
         # iPhone only: the layout is portrait-only, and an iPad build would need every orientation.
         TARGETED_DEVICE_FAMILY: "1"
         # Swift 5 mode: WhisperKit itself is built in Swift 5 mode and is not Sendable.
