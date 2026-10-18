@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { useCardFromQuery } from '../../pipeline/useCardFromQuery';
 import type { AppDispatch } from '../../../store';
 import { useGetCutJobQuery, useGetTranscriptQuery } from '../../../api/generatedApi';
 import { useSubmitCutWithSourceMutation } from '../api/cutSubmitApi';
@@ -52,6 +53,13 @@ function TranscriptEditor({ transcriptionJobId }: { transcriptionJobId: string }
   const [submitCut, { isLoading: isSubmitting, data: submittedJob, isError: isSubmitError }] =
     useSubmitCutWithSourceMutation();
   const cutJob = usePolledJob(useGetCutJobQuery, submittedJob?.id) ?? submittedJob;
+  const card = useCardFromQuery();
+  const { onCut } = card;
+
+  // Opened from a board card (BEH-PIPE-5): a finished export moves that card to Cut.
+  useEffect(() => {
+    if (cutJob?.status === 'Completed') onCut();
+  }, [cutJob?.status, onCut]);
 
   // The server keeps no copy of the video (#22), so the browser's is the only one. It arrives via
   // sourceFileStore when the upload panel navigated here, and is absent on a reload or a shared
@@ -247,6 +255,11 @@ function TranscriptEditor({ transcriptionJobId }: { transcriptionJobId: string }
           </p>
         )}
         {isSubmitError && <p className="editor-export-status error">Could not submit the cut.</p>}
+        {card.cardId && cutJob?.status === 'Completed' && (
+          <p className="editor-export-status">
+            Moved to Cut on <Link to="/">the board</Link>.
+          </p>
+        )}
       </div>
 
       <TranscriptWords

@@ -7,6 +7,9 @@ import {
   emptyBoard,
   moveCard,
   parseBoard,
+  attachTake,
+  editorPath,
+  markCut,
   normaliseLink,
   setPublished,
   setScript,
@@ -30,6 +33,34 @@ describe('addCard', () => {
     const b = emptyBoard();
     expect(addCard(b, { title: '' })).toBe(b);
     expect(addCard(b, { title: '   ' })).toBe(b);
+  });
+});
+
+describe('attachTake / markCut / editorPath (BEH-PIPE-5)', () => {
+  it('a transcribed take is remembered and moves an early card to Recorded', () => {
+    const b = attachTake(withCard(), 'a', 'job-1');
+    expect(b.cards[0]).toMatchObject({ stage: 'recorded', transcriptionJobId: 'job-1' });
+  });
+
+  it('never moves a card backwards', () => {
+    const published = moveCard(withCard(), 'a', 'published');
+    expect(attachTake(published, 'a', 'job-1').cards[0].stage).toBe('published');
+    expect(markCut(published, 'a').cards[0].stage).toBe('published');
+  });
+
+  it('a finished cut moves the card to Cut', () => {
+    expect(markCut(attachTake(withCard(), 'a', 'job-1'), 'a').cards[0].stage).toBe('cut');
+  });
+
+  it('ignores a blank job id', () => {
+    const b = withCard();
+    expect(attachTake(b, 'a', ' ')).toBe(b);
+  });
+
+  it('links to the upload until there is a transcript, then to the transcript', () => {
+    const card = withCard().cards[0];
+    expect(editorPath(card)).toBe('/editor?card=a');
+    expect(editorPath({ ...card, transcriptionJobId: 'job/1' })).toBe('/editor/job%2F1?card=a');
   });
 });
 

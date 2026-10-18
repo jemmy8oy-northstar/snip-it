@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import {
   STAGES,
   STAGE_LABELS,
@@ -6,6 +7,7 @@ import {
   cardsInStage,
   deleteCard,
   editCard,
+  editorPath,
   moveCard,
   normaliseLink,
   setPublished,
@@ -76,6 +78,9 @@ function CardView({ card, onMove, onEdit, onSaveScript, onSaveLink, onDelete }: 
         <button type="button" className="pipe-btn" aria-expanded={open} onClick={toggle}>
           {open ? 'Close' : 'Open'}
         </button>
+        <Link className="pipe-btn" to={editorPath(card)} aria-label={`Cut ${card.title} in the editor`}>
+          {card.transcriptionJobId ? 'Edit cut' : 'Cut a take'}
+        </Link>
       </div>
 
       {open && (

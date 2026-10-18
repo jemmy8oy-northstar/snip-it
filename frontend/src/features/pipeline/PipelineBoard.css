@@ -48,6 +48,13 @@
   cursor: pointer;
 }
 
+/* The editor link shares the button look. */
+a.pipe-btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
 .pipe-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

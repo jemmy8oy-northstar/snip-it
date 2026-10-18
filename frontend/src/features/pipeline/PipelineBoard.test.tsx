@@ -1,7 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { PipelineBoard } from './PipelineBoard';
+import { MemoryRouter } from 'react-router-dom';
+import { PipelineBoard as Board } from './PipelineBoard';
+
+const PipelineBoard = () => (
+  <MemoryRouter>
+    <Board />
+  </MemoryRouter>
+);
 import { STORAGE_KEY } from './storage';
 
 beforeEach(() => window.localStorage.clear());
@@ -61,6 +68,18 @@ describe('PipelineBoard', () => {
     expect(within(published).getByRole('link', { name: 'Watch Video B' })).toHaveAttribute(
       'href',
       'https://youtu.be/abc',
+    );
+  });
+
+  it('a new card links to the upload, tagged with its id', async () => {
+    const user = userEvent.setup();
+    render(<PipelineBoard />);
+    await user.type(screen.getByLabelText('Working title'), 'Video C');
+    await user.click(screen.getByRole('button', { name: 'Add idea' }));
+    const id = JSON.parse(window.localStorage.getItem(STORAGE_KEY)!).cards[0].id;
+    expect(screen.getByRole('link', { name: 'Cut Video C in the editor' })).toHaveAttribute(
+      'href',
+      `/editor?card=${id}`,
     );
   });
 

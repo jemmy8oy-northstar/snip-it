@@ -14,6 +14,14 @@ export function loadBoard(): Board {
   }
 }
 
+/**
+ * Read-modify-write for code outside the board (the editor, BEH-PIPE-5). The board itself is not
+ * mounted then, and it reads storage when it next mounts, so there is no second copy to go stale.
+ */
+export function updateStoredBoard(fn: (board: Board) => Board): boolean {
+  return saveBoard(fn(loadBoard()));
+}
+
 /** Returns false when the browser refuses (private mode, quota) — the board still works in memory. */
 export function saveBoard(board: Board): boolean {
   try {
