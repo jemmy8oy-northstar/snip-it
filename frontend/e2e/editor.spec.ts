@@ -27,7 +27,8 @@ async function attachSourceFile(page: Page): Promise<void> {
 }
 
 test('landing page renders', async ({ page }) => {
-  await page.goto('./');
+  // The old Home page moved off `/` (the pipeline board is the first screen now).
+  await page.goto('./home');
   await expect(page.locator('main')).toBeVisible();
   await page.screenshot({
     path: 'e2e/screenshots/home.png',

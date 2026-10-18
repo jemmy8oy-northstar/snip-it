@@ -63,6 +63,10 @@ const Navbar: React.FC = () => {
       </div>
 
       <div className={`nav-links ${isMenuOpen ? 'open' : ''}`} style={{ display: 'flex', gap: '24px', fontSize: '0.85rem', alignItems: 'center' }}>
+        <Link to={config.navigation.board} onClick={() => setIsMenuOpen(false)} style={getLinkStyle(config.navigation.board)}>
+          Board
+          {isActive(config.navigation.board) && <ActiveDot />}
+        </Link>
         <Link to={config.navigation.home} onClick={() => setIsMenuOpen(false)} style={getLinkStyle(config.navigation.home)}>
           Home
           {isActive(config.navigation.home) && <ActiveDot />}

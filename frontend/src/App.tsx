@@ -4,6 +4,7 @@ import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import ScrollToTop from './components/ScrollToTop'
 import { ThemeProvider } from './context/ThemeContext'
+import { PipelineBoard } from './features/pipeline/PipelineBoard'
 import { TranscriptEditorPage } from './features/transcript-editor/components/TranscriptEditorPage'
 
 function App() {
@@ -15,7 +16,8 @@ function App() {
           <Navbar />
           <main>
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<PipelineBoard />} />
+              <Route path="/home" element={<Home />} />
               <Route path="/editor" element={<TranscriptEditorPage />} />
               <Route path="/editor/:transcriptionJobId" element={<TranscriptEditorPage />} />
             </Routes>
@@ -28,7 +30,7 @@ function App() {
             color: 'var(--text-secondary)',
             fontSize: '0.9rem'
           }}>
-            <p>© {new Date().getFullYear()} Your Name Here.</p>
+            <p>© {new Date().getFullYear()} SnipIt</p>
           </footer>
         </div>
       </Router>

@@ -1,0 +1,122 @@
+/**
+ * The video pipeline board — pure logic. No React, no storage: every function takes a board and
+ * returns a new one, so the rules (BEH-PIPE-1..3) are unit-testable without a DOM.
+ */
+
+export const STAGES = ['idea', 'scripted', 'recorded', 'cut', 'published'] as const;
+export type Stage = (typeof STAGES)[number];
+
+export const STAGE_LABELS: Record<Stage, string> = {
+  idea: 'Idea',
+  scripted: 'Scripted',
+  recorded: 'Recorded',
+  cut: 'Cut',
+  published: 'Published',
+};
+
+export interface Card {
+  id: string;
+  title: string;
+  notes: string;
+  script: string;
+  stage: Stage;
+  createdAt: number;
+}
+
+export interface Board {
+  cards: Card[];
+}
+
+export const emptyBoard = (): Board => ({ cards: [] });
+
+export function isStage(value: unknown): value is Stage {
+  return typeof value === 'string' && (STAGES as readonly string[]).includes(value);
+}
+
+export function newId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Title is the only required field. Returns the board unchanged when it is blank. */
+export function addCard(
+  board: Board,
+  input: { title: string; notes?: string },
+  id: string = newId(),
+  now: number = Date.now(),
+): Board {
+  const title = input.title.trim();
+  if (title === '') return board;
+  const card: Card = {
+    id,
+    title,
+    notes: (input.notes ?? '').trim(),
+    script: '',
+    stage: 'idea',
+    createdAt: now,
+  };
+  return { cards: [...board.cards, card] };
+}
+
+function update(board: Board, id: string, fn: (card: Card) => Card): Board {
+  return { cards: board.cards.map((c) => (c.id === id ? fn(c) : c)) };
+}
+
+/** Edit title/notes. A blank title is rejected (the card is left as it was). */
+export function editCard(board: Board, id: string, patch: { title?: string; notes?: string }): Board {
+  return update(board, id, (c) => {
+    const title = patch.title === undefined ? c.title : patch.title.trim();
+    if (title === '') return c;
+    return { ...c, title, notes: patch.notes === undefined ? c.notes : patch.notes.trim() };
+  });
+}
+
+/**
+ * Save a script. The one automatic move in the whole board: a non-blank script saved on a card
+ * in Idea moves it to Scripted. Every other stage stays put.
+ */
+export function setScript(board: Board, id: string, script: string): Board {
+  return update(board, id, (c) => ({
+    ...c,
+    script,
+    stage: c.stage === 'idea' && script.trim() !== '' ? 'scripted' : c.stage,
+  }));
+}
+
+/** Explicit move, chosen by the creator. */
+export function moveCard(board: Board, id: string, stage: Stage): Board {
+  if (!isStage(stage)) return board;
+  return update(board, id, (c) => ({ ...c, stage }));
+}
+
+export function deleteCard(board: Board, id: string): Board {
+  return { cards: board.cards.filter((c) => c.id !== id) };
+}
+
+export function cardsInStage(board: Board, stage: Stage): Card[] {
+  return board.cards.filter((c) => c.stage === stage);
+}
+
+/** Validate an unknown parsed value into a Board, dropping malformed cards. */
+export function parseBoard(raw: unknown): Board {
+  if (typeof raw !== 'object' || raw === null) return emptyBoard();
+  const cards = (raw as { cards?: unknown }).cards;
+  if (!Array.isArray(cards)) return emptyBoard();
+  const out: Card[] = [];
+  for (const item of cards) {
+    if (typeof item !== 'object' || item === null) continue;
+    const c = item as Record<string, unknown>;
+    if (typeof c.id !== 'string' || typeof c.title !== 'string' || c.title.trim() === '') continue;
+    out.push({
+      id: c.id,
+      title: c.title,
+      notes: typeof c.notes === 'string' ? c.notes : '',
+      script: typeof c.script === 'string' ? c.script : '',
+      stage: isStage(c.stage) ? c.stage : 'idea',
+      createdAt: typeof c.createdAt === 'number' ? c.createdAt : 0,
+    });
+  }
+  return { cards: out };
+}
