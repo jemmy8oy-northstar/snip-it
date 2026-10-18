@@ -1,6 +1,6 @@
 /**
  * The video pipeline board — pure logic. No React, no storage: every function takes a board and
- * returns a new one, so the rules (BEH-PIPE-1..3, 6) are unit-testable without a DOM.
+ * returns a new one, so the rules (BEH-PIPE-1..3, 5, 6) are unit-testable without a DOM.
  */
 
 export const STAGES = ['idea', 'scripted', 'recorded', 'cut', 'published'] as const;
@@ -23,6 +23,8 @@ export interface Card {
   createdAt: number;
   /** Where the finished video lives (BEH-PIPE-6). Empty until the creator pastes one. */
   publishedUrl: string;
+  /** The take's transcript in the editor (BEH-PIPE-5). Empty until a take is uploaded from the card. */
+  transcriptionJobId: string;
 }
 
 export interface Board {
@@ -59,6 +61,7 @@ export function addCard(
     stage: 'idea',
     createdAt: now,
     publishedUrl: '',
+    transcriptionJobId: '',
   };
   return { cards: [...board.cards, card] };
 }
@@ -121,6 +124,31 @@ export function setPublished(board: Board, id: string, link: string): Board {
   return update(board, id, (c) => ({ ...c, publishedUrl: url, stage: 'published' }));
 }
 
+/** A card never moves backwards on its own: only the creator's explicit move does that. */
+function atLeast(current: Stage, target: Stage): Stage {
+  return STAGES.indexOf(current) >= STAGES.indexOf(target) ? current : target;
+}
+
+/**
+ * A take uploaded from a card has been transcribed: remember its transcript so the card can reopen
+ * the editor, and move the card to Recorded if it was still earlier than that.
+ */
+export function attachTake(board: Board, id: string, transcriptionJobId: string): Board {
+  if (transcriptionJobId.trim() === '') return board;
+  return update(board, id, (c) => ({ ...c, transcriptionJobId, stage: atLeast(c.stage, 'recorded') }));
+}
+
+/** The cut opened from a card finished exporting: the card moves to Cut, unless already Published. */
+export function markCut(board: Board, id: string): Board {
+  return update(board, id, (c) => ({ ...c, stage: atLeast(c.stage, 'cut') }));
+}
+
+/** Where a card's "Cut" link goes: its transcript if it has one, otherwise the upload. */
+export function editorPath(card: Card): string {
+  const base = card.transcriptionJobId ? `/editor/${encodeURIComponent(card.transcriptionJobId)}` : '/editor';
+  return `${base}?card=${encodeURIComponent(card.id)}`;
+}
+
 export function deleteCard(board: Board, id: string): Board {
   return { cards: board.cards.filter((c) => c.id !== id) };
 }
@@ -147,6 +175,7 @@ export function parseBoard(raw: unknown): Board {
       stage: isStage(c.stage) ? c.stage : 'idea',
       createdAt: typeof c.createdAt === 'number' ? c.createdAt : 0,
       publishedUrl: typeof c.publishedUrl === 'string' ? (normaliseLink(c.publishedUrl) ?? '') : '',
+      transcriptionJobId: typeof c.transcriptionJobId === 'string' ? c.transcriptionJobId : '',
     });
   }
   return { cards: out };

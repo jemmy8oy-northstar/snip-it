@@ -29,6 +29,34 @@ test('add an idea, write its script, see it in Scripted, reload, still there', a
   await expect(page.getByTestId('col-scripted').getByRole('heading', { name: 'How I edit in one pass' })).toBeVisible();
 });
 
+test('a card opens the editor, and its take moves it to Recorded then Cut (BEH-PIPE-5)', async ({ page }) => {
+  await page.goto('./');
+  await addIdea(page, 'One-pass edit');
+  await page.getByRole('link', { name: 'Cut One-pass edit in the editor' }).click();
+
+  await page.getByLabel('Video or audio file').setInputFiles({
+    name: 'take.mp4',
+    mimeType: 'video/mp4',
+    buffer: Buffer.from('not really a video'),
+  });
+  await page.getByRole('button', { name: 'Transcribe' }).click();
+
+  // The card id has to survive the upload → editor hop, or the export can't find its card.
+  await expect(page.getByRole('button', { name: 'Send for export' })).toBeVisible();
+  await expect(page).toHaveURL(/\/editor\/[^?]+\?card=/);
+
+  await page.getByRole('button', { name: 'Send for export' }).click();
+  await page.getByRole('link', { name: 'the board' }).click();
+
+  const card = page.getByTestId('col-cut').getByRole('heading', { name: 'One-pass edit' });
+  await expect(card).toBeVisible();
+  // Reopening goes straight to the transcript, not back to the upload.
+  await expect(page.getByRole('link', { name: 'Cut One-pass edit in the editor' })).toHaveAttribute(
+    'href',
+    /\/editor\/[^?]+\?card=/,
+  );
+});
+
 test('board screenshots with sample cards (phone and desktop)', async ({ page }) => {
   await page.goto('./');
   await addIdea(page, 'Why I stopped using presets', 'a short rant');
