@@ -1,37 +1,63 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@500;700;800&display=swap');
+/* Design-system tokens. Vendored verbatim and pinned — see
+   styles/design-system/README.md for the commit and the per-file hashes. */
+@import './styles/design-system/index.css';
 
+/* The studio theme names Space Grotesk / IBM Plex Sans / IBM Plex Mono. The
+   token layer only NAMES families; loading them is the app's job (design-system
+   README). Loading the old pair instead would leave every studio type role
+   falling through to system-ui — a theme that is applied and invisible. */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+/*
+ * ---- Adoption layer (L1: tokens only) -------------------------------------
+ *
+ * snip-it's own variable names are kept and re-pointed at design-system's
+ * semantic ROLES. That is the whole diff: ~500 lines of component CSS keep
+ * saying var(--bg-card) and need no edit, while the value behind it stops being
+ * a hex this repo invented.
+ *
+ * It also fixes the drift that motivated the adoption: this file declared
+ * indigo #6366f1 as the primary while the editor declared green #10b981 as its
+ * accent — two primaries in one app, neither of them the brand.
+ *
+ * Colour values now live in exactly one place: styles/design-system/.
+ * ---------------------------------------------------------------------------
+ */
 :root {
-  /* Common - Brand Colors */
-  --accent-primary: #6366f1;
-  --accent-secondary: #a855f7;
+  /* Brand — was #6366f1 indigo / #a855f7 purple, inherited from web-template */
+  --accent-primary: var(--color-primary);
+  --accent-secondary: var(--color-secondary);
 
-  /* Typography */
-  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Outfit', var(--font-main);
+  /* Typography — the studio theme swaps the family behind these roles */
+  --font-main: var(--font-ui);
+  --font-display: var(--font-heading);
 
-  /* Transitions */
+  /* Transitions — motion is not yet a design-system role; see the PR body */
   --theme-transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, background 0.4s ease;
 }
 
-/* Dark Theme (Default) */
-[data-theme='dark'] {
-  --bg-page: #0a0a0c;
-  --bg-card: rgba(255, 255, 255, 0.05);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-hover-bg: rgba(255, 255, 255, 0.08);
+/*
+ * Surfaces and text. These used to be two hand-written palettes; both modes are
+ * now the studio theme's, so dark/light stay consistent by construction rather
+ * than by someone remembering to edit both blocks.
+ *
+ * `--gradient-opacity` is the one value that stays app-local: it is the
+ * strength of this app's background wash, not a colour.
+ */
+[data-theme] {
+  --bg-page: var(--color-bg);
+  --bg-card: var(--color-surface);
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-text-muted);
+  --glass-border: var(--color-border);
+  --glass-hover-bg: var(--color-surface-hover);
+}
+
+[data-theme='studio'] {
   --gradient-opacity: 0.15;
 }
 
-/* Light Theme */
-[data-theme='light'] {
-  --bg-page: #f8fafc;
-  --bg-card: rgba(0, 0, 0, 0.03);
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-hover-bg: rgba(0, 0, 0, 0.05);
+[data-theme='studio'][data-mode='light'] {
   --gradient-opacity: 0.05;
 }
 
@@ -83,8 +109,11 @@ body::before {
   width: 120%;
   height: 120%;
   background:
-    radial-gradient(circle at 20% 30%, rgba(99, 102, 241, var(--gradient-opacity)) 0%, transparent 40%),
-    radial-gradient(circle at 80% 70%, rgba(168, 85, 247, var(--gradient-opacity)) 0%, transparent 40%);
+    /* Was the indigo/purple wash every web-template app ships. Same geometry
+       and same strength — only the hue is now the brand's, mixed from the role
+       so it follows a theme swap instead of being repainted by hand. */
+    radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--color-primary) calc(var(--gradient-opacity) * 100%), transparent) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--color-secondary) calc(var(--gradient-opacity) * 100%), transparent) 0%, transparent 40%);
   z-index: -1;
   pointer-events: none;
   transition: var(--theme-transition);
@@ -103,8 +132,8 @@ body::before {
 .glass-hover:hover {
   transform: translateY(-8px);
   background: var(--glass-hover-bg);
-  border-color: rgba(99, 102, 241, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Layout Utilities */

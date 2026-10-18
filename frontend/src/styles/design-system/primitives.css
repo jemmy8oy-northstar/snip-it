@@ -1,0 +1,134 @@
+/*
+ * Primitive tokens — the raw scales.
+ *
+ * These are theme-INDEPENDENT: fixed colour ramps, spacing, radii, type, motion.
+ * Nothing in a component should reference these directly. Themes (see
+ * themes/*.css) map these primitives onto the semantic roles in semantic.css,
+ * and components only ever read the semantic roles. That indirection is what
+ * makes a whole theme swap by changing one attribute.
+ */
+
+:root {
+  /* ---- Colour: coral (primary family) ------------------------------------ */
+  --coral-50: #fff3f0;
+  --coral-100: #ffe3db;
+  --coral-200: #ffc7b8;
+  --coral-300: #fda792;
+  --coral-400: #fb8c6f;
+  --coral-500: #f97357; /* brand primary */
+  --coral-600: #e8583b;
+  --coral-700: #c6472d;
+  --coral-800: #9e3826;
+  --coral-900: #7a2d20;
+
+  /* ---- Colour: teal (secondary / positive family) ------------------------ */
+  --teal-50: #eafaf7;
+  --teal-100: #cff3ec;
+  --teal-200: #a0e6da;
+  --teal-300: #6bd5c4;
+  --teal-400: #45c4b1;
+  --teal-500: #2fb3a3; /* brand secondary */
+  --teal-600: #1f9385;
+  --teal-700: #1a776c;
+  --teal-800: #175e56;
+  --teal-900: #144a44;
+
+  /* ---- Colour: warm grey (neutrals, sand-tinted, not cold slate) ---------- */
+  --warm-0: #ffffff;
+  --warm-50: #faf8f5;
+  --warm-100: #f3efea;
+  --warm-200: #e7e0d8;
+  --warm-300: #d5cbbf;
+  --warm-400: #b3a899;
+  --warm-500: #8c8073;
+  --warm-600: #6b6154;
+  --warm-700: #4f4740;
+  --warm-800: #35302b;
+  --warm-900: #201d1a;
+  --warm-950: #14120f;
+
+  /* ---- Colour: graphite (cool near-neutrals, for tool/editor themes) ------
+     Deliberately low-chroma and slightly blue: chrome around video or charts
+     must not tint the content it frames, which is why every editor UI is grey.
+     Kept as a second neutral ramp rather than replacing warm grey — the two
+     neutrals are most of what makes casual and studio read as different. */
+  --graphite-0: #ffffff;
+  --graphite-50: #f5f6f8;
+  --graphite-100: #e9ebef;
+  --graphite-200: #d7dae1;
+  --graphite-300: #b6bbc6;
+  --graphite-400: #878e9c;
+  --graphite-500: #636a78;
+  --graphite-600: #4a505c;
+  --graphite-700: #353a44;
+  --graphite-800: #24272e;
+  --graphite-850: #1c1f25;
+  --graphite-900: #15171c;
+  --graphite-950: #0e0f13;
+  --graphite-1000: #08090c;
+
+  /* ---- Colour: functional (amber warning, warm red danger) --------------- */
+  --amber-100: #fdecc8;
+  --amber-500: #f5a524;
+  --amber-600: #d98613;
+  --red-100: #fddcdd;
+  --red-500: #e5484d;
+  --red-600: #cc2e33;
+
+  /* ---- Spacing (4px base) ------------------------------------------------- */
+  --space-0: 0;
+  --space-1: 0.25rem; /* 4  */
+  --space-2: 0.5rem; /*  8  */
+  --space-3: 0.75rem; /* 12 */
+  --space-4: 1rem; /*    16 */
+  --space-5: 1.25rem; /* 20 */
+  --space-6: 1.5rem; /*  24 */
+  --space-8: 2rem; /*    32 */
+  --space-10: 2.5rem; /* 40 */
+  --space-12: 3rem; /*   48 */
+  --space-16: 4rem; /*   64 */
+
+  /* ---- Radius (rounded, friendly — 10–14px is the everyday range) -------- */
+  --radius-xs: 4px; /* tool-UI corner; barely rounded, reads precise */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* ---- Type -------------------------------------------------------------- */
+  --font-display: 'Nunito', system-ui, -apple-system, sans-serif; /* rounded-humanist */
+  --font-text: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Tool-UI families (studio). A grotesk display with real character, a neutral
+     workhorse for dense UI, and a mono whose figures line up in a timecode. */
+  --font-grotesk: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-plex: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-plex-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.4;
+  --leading-normal: 1.6;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ---- Motion ------------------------------------------------------------ */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+}

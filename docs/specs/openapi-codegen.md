@@ -6,17 +6,21 @@ The frontend API client (`src/api/generatedApi.ts`) is generated automatically f
 
 ```
 .NET Backend
-  └── Scalar/OpenAPI middleware
-        └── GET /openapi/v1.json  (schema)
+  └── Debug build (Microsoft.Extensions.ApiDescription.Server, in-process)
+        └── backend/Balenthiran.Snipit.WebApi/openapi.json  (committed schema)
               └── @rtk-query/codegen-openapi
                     └── src/api/generatedApi.ts  (typed RTK Query hooks)
 ```
+
+The schema is generated **at build time**, not scraped off a running server: a Debug build loads the
+app in-process, asks it for its OpenAPI document, and writes `openapi.json` next to the csproj. That
+file is committed, so `npm run codegen` works offline and in CI — no live backend, no database.
 
 The codegen config is in `frontend/openapi-config.cjs`:
 
 ```js
 const config = {
-  schemaFile: 'http://localhost:5257/openapi/v1.json',
+  schemaFile: '../backend/Balenthiran.Snipit.WebApi/openapi.json',
   apiFile: './src/api/emptyApi.ts',
   apiImport: 'emptySplitApi',
   outputFile: './src/api/generatedApi.ts',
@@ -24,18 +28,25 @@ const config = {
 };
 ```
 
+The same document is still served at `GET /openapi/v1.json` (and browsable at `/scalar/v1`) when the
+backend runs in Development — that's for humans, not for codegen.
+
 ## Running the Codegen
 
-1. **Start the backend** (the schema endpoint must be reachable):
+1. **Refresh the schema** with a Debug backend build (no server, no database needed):
    ```bash
    cd backend
-   dotnet run --project Balenthiran.Snipit.WebApi
+   dotnet build Balenthiran.Snipit.WebApi -c Debug   # rewrites openapi.json
    ```
 
 2. **Run codegen** from the `frontend/` directory:
    ```bash
    npm run codegen
    ```
+
+   Commit both `openapi.json` and the regenerated `generatedApi.ts` — a stale pair is how the
+   frontend silently drifts from the backend (this repo shipped a client full of `web-template`
+   scaffold endpoints for exactly that reason).
 
 3. **Use the generated hooks** in your components:
    ```tsx
@@ -86,7 +97,7 @@ export const { useGetSomethingQuery } = customApi;
 
 1. Add route in `backend/Balenthiran.Snipit.WebApi/Routes/*.cs`
 2. Ensure the route is registered in `Program.cs` within the `.WithOpenApi()` chain
-3. Start/restart the backend
+3. `dotnet build Balenthiran.Snipit.WebApi -c Debug` to refresh `openapi.json`
 4. Run `npm run codegen` in `frontend/`
 5. Import and use the new hook (`use*Query` or `use*Mutation`) in your component
 
@@ -94,6 +105,7 @@ export const { useGetSomethingQuery } = customApi;
 
 | Issue | Fix |
 |---|---|
-| `ECONNREFUSED` on codegen | Backend isn't running — start it first |
+| `ENOENT` on `openapi.json` | Run `dotnet build Balenthiran.Snipit.WebApi -c Debug` first |
+| Schema didn't change after a route edit | The generator only runs on **Debug** builds — check the configuration |
 | Hook types show as `unknown` | The endpoint has no typed response — add a typed return model in the backend |
 | Codegen overwrites custom code | Never put custom code in `generatedApi.ts` — use a separate `customApi.ts` |

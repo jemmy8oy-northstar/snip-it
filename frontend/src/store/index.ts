@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { emptySplitApi } from '../api/emptyApi';
+import transcriptEditorReducer from '../features/transcript-editor/editorSlice';
 
 export const store = configureStore({
   reducer: {
     // add the generated reducer as a specific top-level slice
     [emptySplitApi.reducerPath]: emptySplitApi.reducer,
+    transcriptEditor: transcriptEditorReducer,
   },
   // adding the api middleware enables caching, invalidation, polling,
   // and other useful features of `rtk-query`.
