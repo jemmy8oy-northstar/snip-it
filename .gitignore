@@ -31,3 +31,8 @@ Thumbs.db
 # Playwright screenshots — write-only artefacts of a test run, not fixtures.
 # They assert nothing (no toHaveScreenshot anywhere), and nothing reads them.
 frontend/e2e/screenshots/
+
+# iOS — the Xcode project is generated from ios/Teleprompter/project.yml (xcodegen)
+ios/Teleprompter/*.xcodeproj/
+ios/**/.build/
+ios/**/.swiftpm/
