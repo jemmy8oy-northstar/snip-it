@@ -1,0 +1,47 @@
+name: iOS app
+
+# Compiles the Teleprompter app (ios/Teleprompter) for the iOS Simulator, unsigned.
+# ios-package.yml tests the plain-Swift package on Linux. The SwiftUI app around it
+# uses Apple frameworks (AVFoundation, WhisperKit), so it needs macOS, and until this
+# job it had never been compiled anywhere.
+#
+# Unsigned on purpose: this proves the code builds. Signing and TestFlight need
+# James's Apple credentials and belong to the release pipeline (Codemagic), not here.
+# macOS runners are free on a public repo.
+on:
+  pull_request:
+    branches: ["**"]
+    paths: ["ios/**", ".github/workflows/ios-app.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ios/Teleprompter
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate the Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen
+
+      - name: Show schemes
+        run: xcodebuild -list -project Teleprompter.xcodeproj
+
+      - name: Build for the simulator, unsigned
+        run: |
+          xcodebuild build \
+            -project Teleprompter.xcodeproj \
+            -scheme Teleprompter \
+            -destination 'generic/platform=iOS Simulator' \
+            -skipMacroValidation \
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO
