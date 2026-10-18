@@ -36,3 +36,4 @@ frontend/e2e/screenshots/
 ios/Teleprompter/*.xcodeproj/
 ios/**/.build/
 ios/**/.swiftpm/
+ios/Teleprompter/Sources/Info.plist
