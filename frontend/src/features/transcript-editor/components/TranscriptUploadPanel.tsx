@@ -6,6 +6,7 @@ import { describeJobStatus } from '../api/jobStatus';
 import { describeUploadError, isPreviewLimit } from '../api/uploadError';
 import { rememberSourceFile } from '../api/sourceFileStore';
 import { usePolledJob } from '../hooks/usePolledJob';
+import { useCardFromQuery } from '../../pipeline/useCardFromQuery';
 import './TranscriptUploadPanel.css';
 
 /**
@@ -20,6 +21,7 @@ import './TranscriptUploadPanel.css';
  */
 export function TranscriptUploadPanel() {
   const navigate = useNavigate();
+  const { query, onTranscribed } = useCardFromQuery();
   const [file, setFile] = useState<File | null>(null);
   const [upload, { data: submittedJob, isLoading: isUploading, isError: isUploadError, error: uploadError }] =
     useUploadTranscriptionMutation();
@@ -33,9 +35,10 @@ export function TranscriptUploadPanel() {
       if (file) {
         rememberSourceFile(job.id, file);
       }
-      navigate(`/editor/${job.id}`);
+      onTranscribed(job.id);
+      navigate(`/editor/${job.id}${query}`);
     }
-  }, [job?.status, job?.id, file, navigate]);
+  }, [job?.status, job?.id, file, navigate, onTranscribed, query]);
 
   const isWaiting = Boolean(job) && job?.status !== 'Failed';
 

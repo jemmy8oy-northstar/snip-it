@@ -1,6 +1,7 @@
 {
     "navigation": {
-        "home": "/",
+        "board": "/",
+        "home": "/home",
         "editor": "/editor"
     }
 }

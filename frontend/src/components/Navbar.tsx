@@ -52,7 +52,7 @@ const Navbar: React.FC = () => {
       flexDirection: 'column' as const
     }}>
       <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)', display: 'none' }} className="mobile-logo">App Name</div>
+        <div style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)', display: 'none' }} className="mobile-logo">SnipIt</div>
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           style={{ display: 'none', color: 'var(--text-primary)', fontSize: '1.5rem', padding: '4px' }}
@@ -63,6 +63,10 @@ const Navbar: React.FC = () => {
       </div>
 
       <div className={`nav-links ${isMenuOpen ? 'open' : ''}`} style={{ display: 'flex', gap: '24px', fontSize: '0.85rem', alignItems: 'center' }}>
+        <Link to={config.navigation.board} onClick={() => setIsMenuOpen(false)} style={getLinkStyle(config.navigation.board)}>
+          Board
+          {isActive(config.navigation.board) && <ActiveDot />}
+        </Link>
         <Link to={config.navigation.home} onClick={() => setIsMenuOpen(false)} style={getLinkStyle(config.navigation.home)}>
           Home
           {isActive(config.navigation.home) && <ActiveDot />}
