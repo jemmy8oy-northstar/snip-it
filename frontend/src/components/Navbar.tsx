@@ -52,7 +52,7 @@ const Navbar: React.FC = () => {
       flexDirection: 'column' as const
     }}>
       <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)', display: 'none' }} className="mobile-logo">App Name</div>
+        <div style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)', display: 'none' }} className="mobile-logo">SnipIt</div>
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           style={{ display: 'none', color: 'var(--text-primary)', fontSize: '1.5rem', padding: '4px' }}
