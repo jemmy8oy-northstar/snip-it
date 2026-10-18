@@ -60,6 +60,34 @@ public class TranscriptionJobProcessorTests
         var transcript = TranscriptJsonSerializer.Deserialize(updated.TranscriptJson);
         Assert.Equal(5, transcript!.DurationSeconds);
         Assert.Single(transcript.Words);
+
+        // Nothing reads the upload after this point (#22): the editor plays the copy still in the
+        // visitor's browser, and a cut re-sends it. Keeping it is the server-side saving snip-it
+        // does not do — and it is the whole reason there is no volume to keep it on.
+        _fileStorage.Verify(x => x.Delete("uploads/x.mp4"), Times.Once);
+    }
+
+    /// <summary>
+    /// A transcription that fails is precisely when a whole video would otherwise be stranded:
+    /// nothing downstream ever runs, so nothing else would ever clean it up.
+    /// </summary>
+    [Fact]
+    public async Task ProcessAsync_WhenAudioExtractionFails_StillDeletesTheUpload()
+    {
+        await using var dbContext = CreateInMemoryDbContext();
+        var job = new TranscriptionJobEntity { Id = Guid.NewGuid(), Status = JobStatus.Pending, CreatedAt = DateTime.UtcNow, SourceFilePath = "uploads/x.mp4" };
+        dbContext.TranscriptionJobs.Add(job);
+        await dbContext.SaveChangesAsync();
+
+        _fileStorage.Setup(x => x.GetFullPath("uploads/x.mp4")).Returns("/data/uploads/x.mp4");
+        _audioExtraction.Setup(x => x.ExtractAudioAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("ffmpeg exploded"));
+
+        await CreateSut(dbContext).ProcessAsync(job.Id);
+
+        var updated = await dbContext.TranscriptionJobs.AsNoTracking().SingleAsync(j => j.Id == job.Id);
+        Assert.Equal(JobStatus.Failed, updated.Status);
+        _fileStorage.Verify(x => x.Delete("uploads/x.mp4"), Times.Once);
     }
 
     [Fact]

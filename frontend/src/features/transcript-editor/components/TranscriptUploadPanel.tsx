@@ -4,6 +4,7 @@ import { useGetTranscriptionJobQuery } from '../../../api/generatedApi';
 import { useUploadTranscriptionMutation } from '../api/transcriptionUploadApi';
 import { describeJobStatus } from '../api/jobStatus';
 import { describeUploadError, isPreviewLimit } from '../api/uploadError';
+import { rememberSourceFile } from '../api/sourceFileStore';
 import { usePolledJob } from '../hooks/usePolledJob';
 import './TranscriptUploadPanel.css';
 
@@ -12,6 +13,10 @@ import './TranscriptUploadPanel.css';
  *
  * Transcription is a background job, so this is submit-then-poll rather than a single
  * request — a long recording can take minutes, and the request would time out.
+ *
+ * The picked file is handed to `sourceFileStore` before navigating, because the server deletes
+ * its copy the moment transcription finishes (#22) and the editor needs it to play the video
+ * and to submit the cut.
  */
 export function TranscriptUploadPanel() {
   const navigate = useNavigate();
@@ -23,9 +28,14 @@ export function TranscriptUploadPanel() {
 
   useEffect(() => {
     if (job?.status === 'Completed' && job.id) {
+      // Before navigating, not after: the editor reads this on its first render, and the file
+      // is the only copy left once the backend has finished with the upload.
+      if (file) {
+        rememberSourceFile(job.id, file);
+      }
       navigate(`/editor/${job.id}`);
     }
-  }, [job?.status, job?.id, navigate]);
+  }, [job?.status, job?.id, file, navigate]);
 
   const isWaiting = Boolean(job) && job?.status !== 'Failed';
 

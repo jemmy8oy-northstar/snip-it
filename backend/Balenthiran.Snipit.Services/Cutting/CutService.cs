@@ -17,13 +17,21 @@ public class CutService(
     IBackgroundJobQueue jobQueue,
     IMapper mapper) : ICutService
 {
-    public async Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, IReadOnlyList<IDomainTranscriptWord> words, CancellationToken cancellationToken = default)
+    public async Task<IDomainCutJob> SubmitAsync(Guid transcriptionJobId, string sourceStorageKey, IReadOnlyList<IDomainTranscriptWord> words, double? maxPauseSeconds = null, CancellationToken cancellationToken = default)
     {
-        var transcriptionJob = await dbContext.TranscriptionJobs.AsNoTracking()
+        // The transcription job is still checked, even though the media no longer comes from it:
+        // it is what the cut is *of*, the row carries the foreign key, and a cut against a
+        // transcript that does not exist is a bad request however the video arrived.
+        _ = await dbContext.TranscriptionJobs.AsNoTracking()
             .FirstOrDefaultAsync(j => j.Id == transcriptionJobId, cancellationToken)
             ?? throw new InvalidOperationException($"Transcription job {transcriptionJobId} not found.");
 
-        var keepRanges = keepRangeCalculator.Calculate(words);
+        if (maxPauseSeconds is <= 0)
+        {
+            throw new InvalidOperationException("maxPauseSeconds must be positive — a zero gap would split every word apart.");
+        }
+
+        var keepRanges = keepRangeCalculator.Calculate(words, maxPauseSeconds);
         if (keepRanges.Count == 0)
         {
             throw new InvalidOperationException("No kept words in the cut request — nothing to cut.");
@@ -35,7 +43,7 @@ public class CutService(
             Status = JobStatus.Pending,
             CreatedAt = DateTime.UtcNow,
             TranscriptionJobId = transcriptionJobId,
-            SourceFilePath = transcriptionJob.SourceFilePath,
+            SourceFilePath = sourceStorageKey,
             KeepRangesJson = KeepRangeJsonSerializer.Serialize(keepRanges),
         };
 

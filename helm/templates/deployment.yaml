@@ -7,12 +7,6 @@ metadata:
     app: {{ .name }}
 spec:
   replicas: {{ .replicas }}
-  {{- if .volumes }}
-  # A ReadWriteOnce volume can only be attached to one node, so the default rolling update
-  # deadlocks: the new pod waits for a volume the old pod still holds.
-  strategy:
-    type: Recreate
-  {{- end }}
   selector:
     matchLabels:
       app: {{ .name }}
@@ -45,14 +39,6 @@ spec:
               {{- end }}
             {{- end }}
           {{- end }}
-          {{- with .volumeMounts }}
-          volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .volumes }}
-      volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       {{- with .nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

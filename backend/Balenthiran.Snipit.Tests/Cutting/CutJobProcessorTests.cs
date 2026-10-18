@@ -55,11 +55,35 @@ public class CutJobProcessorTests
             var updated = await dbContext.CutJobs.AsNoTracking().SingleAsync(j => j.Id == job.Id);
             Assert.Equal(JobStatus.Completed, updated.Status);
             Assert.StartsWith("exports/", updated.OutputFilePath);
+
+            // The video the browser re-sent for this cut has no other reader (#22), so it goes as
+            // soon as ffmpeg is done with it. The output stays — the download deletes that.
+            _fileStorage.Verify(x => x.Delete("uploads/x.mp4"), Times.Once);
+            _fileStorage.Verify(x => x.Delete(It.Is<string>(s => s.StartsWith("exports/"))), Times.Never);
         }
         finally
         {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    /// <summary>
+    /// The case that matters more than the happy path: a cut that fails is exactly when a whole
+    /// re-uploaded video would otherwise be left behind, and failures are the common outcome for
+    /// the kind of file ffmpeg refuses. Deleting only on success would make every bad upload a
+    /// permanent one.
+    /// </summary>
+    [Fact]
+    public async Task ProcessAsync_WhenFfmpegFails_StillDeletesTheUploadedSource()
+    {
+        await using var dbContext = CreateInMemoryDbContext();
+
+        // FailJobWith runs the job itself — calling ProcessAsync again here would delete twice and
+        // the Times.Once below would fail for a reason that has nothing to do with the rule.
+        var job = await FailJobWith(dbContext, new InvalidOperationException("ffmpeg exploded"));
+
+        Assert.Equal(JobStatus.Failed, job.Status);
+        _fileStorage.Verify(x => x.Delete("uploads/x.mp4"), Times.Once);
     }
 
     [Fact]

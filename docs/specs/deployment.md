@@ -59,8 +59,7 @@ kubectl create secret generic snipit-secrets -n balenthiran \
 
 | Setting | Why it is there |
 | --- | --- |
-| `persistence` → PVC mounted at `/data/storage` | Sources, extracted audio and exported cuts are files on disk (`LocalDiskFileStorageService`). Without a volume they live in the container's writable layer and are lost on every restart, leaving job rows pointing at media that no longer exists. |
-| `strategy: Recreate` (auto, when an app declares volumes) | The PVC is ReadWriteOnce; a rolling update would deadlock waiting for a volume the old pod still holds. |
+| *(no `persistence`, no PVC, no volumes)* | snip-it keeps nothing of a visitor's media between requests (#22). The browser holds the video and re-sends it with the cut, so every file on disk belongs to one job or one response and is deleted by it. What is left is scratch under the OS temp path, sized by *concurrent* work rather than cumulative use — which is also why there is no `strategy: Recreate` and no single-node pinning. The chart is field-for-field the shared template. |
 | `PathBase=/snipit` | The host is shared with the other apps, so the backend is served under a sub-path and the ingress forwards the whole path. `UsePathBase` strips it before routing. |
 | `proxy-body-size: 2048m`, `proxy-*-timeout: 600` | nginx-ingress defaults (1 MB, 60s) reject or cut off essentially every real video upload. |
 | `Uploads__MaxBytes` | Kestrel caps request bodies at 30 MB and multipart sections at 128 MB by default. All three limits — ingress, Kestrel, form options — have to allow the upload or it fails as a bare 413. |
@@ -75,15 +74,16 @@ testing — it is a request answered by somebody else's app. Four things have to
 | Where | What |
 | --- | --- |
 | Vite | `base: '/snipit/'` — builds asset URLs and defines `import.meta.env.BASE_URL`. |
-| Frontend API calls | `src/api/apiBase.ts` derives `API_BASE` from `BASE_URL`; `emptyApi.ts` uses it as the RTK Query `baseUrl`, so every generated *and* hand-written endpoint inherits it. The one caller that bypasses RTK — the `<video src>` — goes through `apiUrl()`. |
+| Frontend API calls | `src/api/apiBase.ts` derives `API_BASE` from `BASE_URL`; `emptyApi.ts` uses it as the RTK Query `baseUrl`, so every generated *and* hand-written endpoint inherits it. Nothing bypasses RTK any more — the `<video src>` used to, and since #22 it is an object URL over a local file, which has no base path to get wrong. |
 | Backend routing | `PathBase=/snipit` → `UsePathBase` strips the prefix before routing, because the ingress forwards the whole path. |
 | Backend-generated links | `CutJobResponse.DownloadUrl` is followed by the browser, so it is built with `Request.PathBase` in front. Path base is empty locally, so the local string is unchanged. |
 
 `vitest.config.ts` also sets `base` — it does not extend `vite.config.ts`, so without it `BASE_URL`
 is `/` under test and the API base would be tested as a value the app never runs with.
 
-Uploads are buffered to the container's temp directory before they reach storage, so the pod also
-needs ephemeral disk roughly the size of the largest upload.
+Uploads are buffered to the container's temp directory, and since #22 that is also where they
+stay for the life of the job — so the pod needs ephemeral disk sized by the largest *concurrent*
+work, not by cumulative use. A video is now sent twice: once to transcribe, once to cut.
 
 ## Registering with the fleet
 
@@ -114,8 +114,8 @@ curl https://balenthiran.co.uk/snipit/api/status         # {"status":"Healthy",.
 ```
 
 Then the real path: open `/snipit/editor`, upload a short clip, and watch the transcription job
-move to `Completed`. That exercises ffmpeg, the Groq key, the PVC and the database in one go — a
-green `/status` proves none of them.
+move to `Completed`. That exercises ffmpeg, the Groq key, scratch disk and the database in one go —
+a green `/status` proves none of them.
 
 ## Open decisions
 
@@ -128,7 +128,15 @@ green `/status` proves none of them.
   one-value `helm upgrade`. What this deliberately does *not* stop is one determined visitor
   eating the whole day's allowance — there is no identity to meter against, and adding one was
   the thing the openness decision rejected.
-- **Nothing ever deletes stored media.** The PVC only grows; there is no retention job.
+- **A cut can be downloaded once.** The export is deleted as it is streamed (#22), so a second
+  click on the same link is a 404. The editor says so next to the link rather than letting it be
+  discovered. Keeping it until the pod restarts instead is a one-line change to `DownloadAsync`.
+- **A reloaded editor cannot play or export until the file is re-picked.** The browser is the only
+  thing that still has the video, and a reload loses it. The transcript is unaffected — it lives in
+  Postgres — so the page stays useful and asks for the file back.
+- **Nothing bounds cut CPU.** `Preview__MaxTranscriptionsPerDay` caps transcriptions; a cut is a
+  full H.264 re-encode and has no quota of its own. It stopped being a *storage* problem with the
+  volume, but it is still a CPU one.
 - **No route-level tests.** `Balenthiran.Snipit.Tests` does not reference the WebApi project, so
   nothing covers the `PathBase`-aware download link end to end. web-template#81's DB-free
   `WebApplicationFactory` pattern would port here cheaply.

@@ -28,10 +28,11 @@ public static class ServiceRegistration
         services.AddAutoMapper(cfg => cfg.AddMaps(AppDomain.CurrentDomain.GetAssemblies()));
         services.AddScoped<IStatusService, StatusService>();
 
-        // File storage
+        // Scratch file storage. There is no volume behind this (#22) — it is the pod's own
+        // ephemeral disk, and every file written to it is deleted by the job or response it
+        // belongs to. RootPath is left unset in the cluster so it falls back to the temp path.
         services.Configure<FileStorageOptions>(configuration.GetSection("FileStorage"));
         services.AddSingleton<IFileStorageService, LocalDiskFileStorageService>();
-        services.AddSingleton<IUploadMediaTypeResolver, UploadMediaTypeResolver>();
 
         // Background job queue (in-process, single worker — see docs/specs for rationale)
         services.AddSingleton<IBackgroundJobQueue, BackgroundJobQueue>();

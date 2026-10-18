@@ -11,6 +11,8 @@ describe('apiBase', () => {
   });
 
   it('prefixes app-absolute paths', () => {
-    expect(apiUrl('/api/transcriptions/abc/source')).toBe('/snipit/api/transcriptions/abc/source');
+    // A route that exists: /transcriptions/{id}/source was deleted in #22, and an example that
+    // points at nothing quietly stops meaning anything.
+    expect(apiUrl('/api/cuts/abc/download')).toBe('/snipit/api/cuts/abc/download');
   });
 });
