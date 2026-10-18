@@ -43,6 +43,27 @@ describe('PipelineBoard', () => {
     expect(within(scripted).getByText('Video A')).toBeInTheDocument();
   });
 
+  it('saving a published link moves the card to Published and shows the link', async () => {
+    const user = userEvent.setup();
+    render(<PipelineBoard />);
+    await user.type(screen.getByLabelText('Working title'), 'Video B');
+    await user.click(screen.getByRole('button', { name: 'Add idea' }));
+
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.type(screen.getByLabelText('Published link'), 'javascript:alert(1)');
+    expect(screen.getByRole('button', { name: 'Save link' })).toBeDisabled();
+
+    await user.clear(screen.getByLabelText('Published link'));
+    await user.type(screen.getByLabelText('Published link'), 'https://youtu.be/abc');
+    await user.click(screen.getByRole('button', { name: 'Save link' }));
+
+    const published = screen.getByRole('region', { name: 'Published' });
+    expect(within(published).getByRole('link', { name: 'Watch Video B' })).toHaveAttribute(
+      'href',
+      'https://youtu.be/abc',
+    );
+  });
+
   it('starts empty over corrupt stored data', () => {
     window.localStorage.setItem(STORAGE_KEY, '{oops');
     render(<PipelineBoard />);

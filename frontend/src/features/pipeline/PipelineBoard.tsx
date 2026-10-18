@@ -7,6 +7,8 @@ import {
   deleteCard,
   editCard,
   moveCard,
+  normaliseLink,
+  setPublished,
   setScript,
   type Card,
   type Stage,
@@ -19,14 +21,17 @@ interface CardViewProps {
   onMove: (stage: Stage) => void;
   onEdit: (patch: { title: string; notes: string }) => void;
   onSaveScript: (script: string) => void;
+  onSaveLink: (link: string) => void;
   onDelete: () => void;
 }
 
-function CardView({ card, onMove, onEdit, onSaveScript, onDelete }: CardViewProps) {
+function CardView({ card, onMove, onEdit, onSaveScript, onSaveLink, onDelete }: CardViewProps) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(card.title);
   const [notes, setNotes] = useState(card.notes);
   const [script, setScriptDraft] = useState(card.script);
+  const [link, setLink] = useState(card.publishedUrl);
+  const linkInvalid = link.trim() !== '' && normaliseLink(link) === null;
 
   const toggle = () => {
     if (!open) {
@@ -34,6 +39,7 @@ function CardView({ card, onMove, onEdit, onSaveScript, onDelete }: CardViewProp
       setTitle(card.title);
       setNotes(card.notes);
       setScriptDraft(card.script);
+      setLink(card.publishedUrl);
     }
     setOpen(!open);
   };
@@ -46,6 +52,11 @@ function CardView({ card, onMove, onEdit, onSaveScript, onDelete }: CardViewProp
     <li className="pipe-card" data-testid={`card-${card.id}`}>
       <h3 className="pipe-card-title">{card.title}</h3>
       {card.notes && <p className="pipe-card-notes">{card.notes}</p>}
+      {card.publishedUrl && (
+        <a className="pipe-card-link" href={card.publishedUrl} target="_blank" rel="noopener noreferrer">
+          Watch {card.title}
+        </a>
+      )}
       <div className="pipe-card-row">
         <label className="pipe-sr" htmlFor={`stage-${card.id}`}>
           Stage of {card.title}
@@ -97,6 +108,24 @@ function CardView({ card, onMove, onEdit, onSaveScript, onDelete }: CardViewProp
           <div className="pipe-card-row">
             <button type="button" className="pipe-btn pipe-btn-primary" onClick={() => onSaveScript(script)}>
               Save script
+            </button>
+          </div>
+          <label className="pipe-label">
+            Published link
+            <input
+              className="pipe-input"
+              type="url"
+              inputMode="url"
+              placeholder="https://youtu.be/…"
+              aria-invalid={linkInvalid}
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+            />
+          </label>
+          {linkInvalid && <p className="pipe-error">That isn't a web link. Paste one starting https://</p>}
+          <div className="pipe-card-row">
+            <button type="button" className="pipe-btn" disabled={linkInvalid} onClick={() => onSaveLink(link)}>
+              Save link
             </button>
             <button type="button" className="pipe-btn pipe-btn-danger" onClick={handleDelete}>
               Delete
@@ -172,6 +201,7 @@ export function PipelineBoard() {
                       onMove={(s) => setBoard((b) => moveCard(b, card.id, s))}
                       onEdit={(patch) => setBoard((b) => editCard(b, card.id, patch))}
                       onSaveScript={(s) => setBoard((b) => setScript(b, card.id, s))}
+                      onSaveLink={(l) => setBoard((b) => setPublished(b, card.id, l))}
                       onDelete={() => setBoard((b) => deleteCard(b, card.id))}
                     />
                   ))}

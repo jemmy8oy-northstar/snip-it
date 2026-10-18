@@ -131,6 +131,19 @@
   overflow-wrap: anywhere;
 }
 
+.pipe-card-link {
+  display: inline-block;
+  font-size: 0.85rem;
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+
+.pipe-error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
 .pipe-card-row {
   display: flex;
   flex-wrap: wrap;

@@ -7,6 +7,8 @@ import {
   emptyBoard,
   moveCard,
   parseBoard,
+  normaliseLink,
+  setPublished,
   setScript,
 } from './pipeline';
 import { loadBoard, saveBoard, STORAGE_KEY } from './storage';
@@ -28,6 +30,38 @@ describe('addCard', () => {
     const b = emptyBoard();
     expect(addCard(b, { title: '' })).toBe(b);
     expect(addCard(b, { title: '   ' })).toBe(b);
+  });
+});
+
+describe('setPublished', () => {
+  it('a valid link is saved and moves the card to Published', () => {
+    const b = setPublished(withCard(), 'a', ' https://youtu.be/abc ');
+    expect(b.cards[0]).toMatchObject({ stage: 'published', publishedUrl: 'https://youtu.be/abc' });
+  });
+
+  it('rejects anything that is not an http(s) link, leaving the board as it was', () => {
+    const b = withCard();
+    for (const bad of ['javascript:alert(1)', 'not a link', 'ftp://x.test/v', 'data:text/html,hi']) {
+      expect(setPublished(b, 'a', bad)).toBe(b);
+    }
+  });
+
+  it('a blank link clears it without moving the card', () => {
+    const published = setPublished(withCard(), 'a', 'https://youtu.be/abc');
+    const b = setPublished(published, 'a', '  ');
+    expect(b.cards[0]).toMatchObject({ stage: 'published', publishedUrl: '' });
+  });
+
+  it('new cards start with no link', () => {
+    expect(withCard().cards[0].publishedUrl).toBe('');
+  });
+});
+
+describe('normaliseLink', () => {
+  it('accepts http and https only', () => {
+    expect(normaliseLink('http://x.test/v')).toBe('http://x.test/v');
+    expect(normaliseLink('JavaScript:alert(1)')).toBeNull();
+    expect(normaliseLink('')).toBeNull();
   });
 });
 
@@ -89,7 +123,17 @@ describe('parseBoard', () => {
       cards: [null, { id: 1 }, { id: 'x', title: ' ' }, { id: 'ok', title: 'T', stage: 'bogus' }],
     });
     expect(b.cards).toHaveLength(1);
-    expect(b.cards[0]).toMatchObject({ id: 'ok', stage: 'idea', notes: '', script: '' });
+    expect(b.cards[0]).toMatchObject({ id: 'ok', stage: 'idea', notes: '', script: '', publishedUrl: '' });
+  });
+
+  it('keeps a stored http(s) link and drops a stored script link', () => {
+    const b = parseBoard({
+      cards: [
+        { id: 'a', title: 'A', publishedUrl: 'https://youtu.be/abc' },
+        { id: 'b', title: 'B', publishedUrl: 'javascript:alert(1)' },
+      ],
+    });
+    expect(b.cards.map((c) => c.publishedUrl)).toEqual(['https://youtu.be/abc', '']);
   });
 
   it.each([null, 5, 'x', [], {}, { cards: 'no' }])('treats %j as an empty board', (v) => {
