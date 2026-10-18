@@ -31,7 +31,7 @@ apps:
       # Must match docker-build-push.yml's BACKEND_IMAGE (snip-it-backend), which is not the
       # release name — the previous value (snipit-backend) does not exist in OCIR.
       repository: lhr.ocir.io/lr7uc6l49odc/snip-it-backend
-      tag: 0.1.4 # pinned by docker-build-push.yml's GitOps step on main
+      tag: 0.1.6 # pinned by docker-build-push.yml's GitOps step on main
       pullPolicy: Always
     containerPort: 8080
     replicas: 1 # the job queue is in-process, so a job must run on the pod that accepted it
@@ -75,7 +75,7 @@ apps:
     image:
       # Must match docker-build-push.yml's FRONTEND_IMAGE (snip-it-frontend).
       repository: lhr.ocir.io/lr7uc6l49odc/snip-it-frontend
-      tag: 0.1.4 # pinned by docker-build-push.yml's GitOps step on main
+      tag: 0.1.6 # pinned by docker-build-push.yml's GitOps step on main
       pullPolicy: Always
     containerPort: 80
     replicas: 1
