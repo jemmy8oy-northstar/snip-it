@@ -1,6 +1,6 @@
 /**
  * The video pipeline board — pure logic. No React, no storage: every function takes a board and
- * returns a new one, so the rules (BEH-PIPE-1..3) are unit-testable without a DOM.
+ * returns a new one, so the rules (BEH-PIPE-1..3, 6) are unit-testable without a DOM.
  */
 
 export const STAGES = ['idea', 'scripted', 'recorded', 'cut', 'published'] as const;
@@ -21,6 +21,8 @@ export interface Card {
   script: string;
   stage: Stage;
   createdAt: number;
+  /** Where the finished video lives (BEH-PIPE-6). Empty until the creator pastes one. */
+  publishedUrl: string;
 }
 
 export interface Board {
@@ -56,6 +58,7 @@ export function addCard(
     script: '',
     stage: 'idea',
     createdAt: now,
+    publishedUrl: '',
   };
   return { cards: [...board.cards, card] };
 }
@@ -91,6 +94,33 @@ export function moveCard(board: Board, id: string, stage: Stage): Board {
   return update(board, id, (c) => ({ ...c, stage }));
 }
 
+/**
+ * The link is rendered as an href, so only http(s) is accepted: a pasted `javascript:` URL would
+ * otherwise run when clicked. Returns the normalised URL, or null when it is not one.
+ */
+export function normaliseLink(raw: string): string | null {
+  const text = raw.trim();
+  if (text === '') return null;
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    return null;
+  }
+  return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
+}
+
+/**
+ * Record where a video was published. A valid link moves the card to Published; an invalid one
+ * leaves the board unchanged. A blank link clears it without moving the card.
+ */
+export function setPublished(board: Board, id: string, link: string): Board {
+  if (link.trim() === '') return update(board, id, (c) => ({ ...c, publishedUrl: '' }));
+  const url = normaliseLink(link);
+  if (url === null) return board;
+  return update(board, id, (c) => ({ ...c, publishedUrl: url, stage: 'published' }));
+}
+
 export function deleteCard(board: Board, id: string): Board {
   return { cards: board.cards.filter((c) => c.id !== id) };
 }
@@ -116,6 +146,7 @@ export function parseBoard(raw: unknown): Board {
       script: typeof c.script === 'string' ? c.script : '',
       stage: isStage(c.stage) ? c.stage : 'idea',
       createdAt: typeof c.createdAt === 'number' ? c.createdAt : 0,
+      publishedUrl: typeof c.publishedUrl === 'string' ? (normaliseLink(c.publishedUrl) ?? '') : '',
     });
   }
   return { cards: out };
