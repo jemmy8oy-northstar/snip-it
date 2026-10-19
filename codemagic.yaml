@@ -9,8 +9,11 @@
 #
 # Needs, in Codemagic (Teams → Integrations): an App Store Connect API key named
 # `app_store_connect`, and an app record in App Store Connect for the bundle id
-# below. Codemagic uses that key to fetch or create the distribution certificate
-# and provisioning profile, so no signing files are committed.
+# below. `ios_signing` only MATCHES a distribution certificate and an App Store
+# provisioning profile already uploaded to Codemagic's code signing identities;
+# it never creates them. Add both there first (Codemagic can fetch the profile
+# from Apple using the key). Otherwise the build fails with "No matching
+# profiles". No signing files are committed.
 #
 # No `triggering` block: it runs only when started from Codemagic's UI.
 workflows:
