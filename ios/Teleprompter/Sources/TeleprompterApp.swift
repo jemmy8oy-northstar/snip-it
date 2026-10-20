@@ -23,4 +23,5 @@ enum SettingKey {
     static let snipItUser = "snipItUser"
     static let maxPause = "maxPauseSeconds"
     static let whisperModel = "whisperModel"
+    static let speechModelFolders = "speechModelFolders"
 }
