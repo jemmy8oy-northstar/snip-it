@@ -31,6 +31,7 @@ targets:
       path: Sources/Info.plist
       properties:
         CFBundleDisplayName: Teleprompter
+        CFBundleIconName: AppIcon
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         NSCameraUsageDescription: The teleprompter films you while you read.
@@ -39,6 +40,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: uk.co.balenthiran.yourstudio
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # iPhone only: the layout is portrait-only, and an iPad build would need every orientation.
         TARGETED_DEVICE_FAMILY: "1"
         # Swift 5 mode: WhisperKit itself is built in Swift 5 mode and is not Sendable.
