@@ -4,13 +4,25 @@
 # This is the release half: signed with James's Apple credentials, so it runs on
 # Codemagic, where those credentials live, and never in this repo.
 #
-# Codemagic's workflow editor only supports Flutter apps, so a native Swift app
-# has to be configured here.
+# Codemagic's workflow editor — and with it the automatic code signing option —
+# only supports Flutter apps, so a native Swift app has to do the same work by
+# hand here. An `ios_signing:` block is NOT the equivalent: it only fetches
+# profiles already uploaded to Codemagic's Code signing identities, and fails
+# with "No matching profiles found" when there are none. The fetch-signing-files
+# step below is the real equivalent — it asks Apple for the certificate and
+# profile, creating them the first time this bundle id is built.
 #
-# Needs, in Codemagic (Teams → Integrations): an App Store Connect API key named
-# `app_store_connect`, and an app record in App Store Connect for the bundle id
-# below. Codemagic uses that key to fetch or create the distribution certificate
-# and provisioning profile, so no signing files are committed.
+# Needs, in Codemagic:
+#   Teams → Integrations → an App Store Connect API key named `app_store_connect`
+#     with the App Manager role. The integration injects APP_STORE_CONNECT_ISSUER_ID,
+#     APP_STORE_CONNECT_KEY_IDENTIFIER and APP_STORE_CONNECT_PRIVATE_KEY.
+#   An environment variable group `appstore_credentials` holding a secure
+#     CERTIFICATE_PRIVATE_KEY: the private key Apple issues the distribution
+#     certificate against. Apple only ever hands back the public .cer, so this
+#     key is what makes the certificate usable. Generate it once with
+#       ssh-keygen -t rsa -b 2048 -m PEM -f cert_key -q -N ""
+#     and paste the contents of `cert_key` in as the value.
+#   An app record in App Store Connect for the bundle id below.
 #
 # No `triggering` block: it runs only when started from Codemagic's UI.
 workflows:
@@ -22,14 +34,25 @@ workflows:
       app_store_connect: app_store_connect
     environment:
       xcode: latest
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: uk.co.balenthiran.yourstudio
+      groups:
+        - appstore_credentials
+      vars:
+        BUNDLE_ID: uk.co.balenthiran.yourstudio
     scripts:
       - name: Generate the Xcode project
         script: |
           brew install xcodegen
           cd ios/Teleprompter && xcodegen
+
+      # Automatic code signing. `--create` is what lets a brand-new bundle id
+      # work: without it the build fails on a profile that does not exist yet.
+      - name: Fetch or create the signing files
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
 
       - name: Use the signing profiles
         script: xcode-project use-profiles
