@@ -178,23 +178,16 @@ struct TakePlayer: View {
     }
 
     var body: some View {
-        VideoPlayer(player: player)
-            .ignoresSafeArea()
-            .background(.black)
-            .overlay(alignment: .topLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.title2)
-                        .foregroundStyle(.white)
-                        .frame(width: 44, height: 44)
-                        .background(.black.opacity(0.5), in: Circle())
+        // Done sits in a bar above the video: an overlay would cover the player's own corner controls.
+        NavigationStack {
+            VideoPlayer(player: player)
+                .background(.black)
+                .toolbar {
+                    Button("Done") { dismiss() }
                 }
-                .padding()
-                .accessibilityLabel("Close")
-            }
-            .onAppear { player.play() }
-            .onDisappear { player.pause() }
+                .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .onAppear { player.play() }
+        .onDisappear { player.pause() }
     }
 }
