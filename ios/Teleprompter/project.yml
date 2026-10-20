@@ -32,6 +32,11 @@ targets:
       properties:
         CFBundleDisplayName: Teleprompter
         CFBundleIconName: AppIcon
+        # Export compliance: declares the app uses no non-exempt encryption, so
+        # TestFlight stops asking before each build can reach testers. If the app
+        # ever adds its own crypto (not HTTPS, which is exempt), this must change
+        # to true and a CCATS/self-classification report may be required.
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         NSCameraUsageDescription: The teleprompter films you while you read.

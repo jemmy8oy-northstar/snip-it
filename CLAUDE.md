@@ -104,6 +104,16 @@ cd backend && dotnet ef database update \
 
 CI runs on PRs only (`ci.yml`). Image builds are manual (`docker-build-push.yml`, `workflow_dispatch`).
 
+### iOS export compliance (keep this current)
+
+`ios/Teleprompter/project.yml` sets `ITSAppUsesNonExemptEncryption: false`, which auto-answers
+TestFlight's export compliance question so builds reach testers without manual intervention.
+
+**This is a legal declaration, not a convenience flag.** It is only true while the app uses no
+encryption of its own. HTTPS and Apple's own platform crypto are exempt. If the app ever adds
+its own encryption — encrypting takes at rest, a custom protocol, bundled crypto libraries —
+change it to `true` and check whether a self-classification report or CCATS is required.
+
 ## How to Trigger Claude
 
 Tag `@claude` in any issue or PR comment. Claude reads the full thread before acting.

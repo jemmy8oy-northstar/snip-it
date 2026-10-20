@@ -24,12 +24,23 @@
 #     and paste the contents of `cert_key` in as the value.
 #   An app record in App Store Connect for the bundle id below.
 #
-# No `triggering` block: it runs only when started from Codemagic's UI.
+# Triggers on every push to `dev`, and can still be started by hand from the UI.
+# Needs the Codemagic webhook on the repo, which is added when the app is connected.
 workflows:
   ios-testflight:
     name: Teleprompter → TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 60
+    # Builds every push to `dev`. Once the app is stable enough that not every dev
+    # push should land in TestFlight, change this pattern to `main` and let dev
+    # merges reach testers only on release.
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: dev
+          include: true
+          source: true
     integrations:
       app_store_connect: CodeMagicKeyDealMapper
     environment:
