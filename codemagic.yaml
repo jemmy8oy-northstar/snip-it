@@ -24,7 +24,7 @@ workflows:
       xcode: latest
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: uk.co.balenthiran.snipit
+        bundle_identifier: uk.co.balenthiran.yourstudio
     scripts:
       - name: Generate the Xcode project
         script: |

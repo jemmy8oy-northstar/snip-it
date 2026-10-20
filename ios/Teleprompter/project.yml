@@ -38,7 +38,7 @@ targets:
         NSPhotoLibraryAddUsageDescription: Saves a finished take to your photos.
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: uk.co.balenthiran.snipit
+        PRODUCT_BUNDLE_IDENTIFIER: uk.co.balenthiran.yourstudio
         # iPhone only: the layout is portrait-only, and an iPad build would need every orientation.
         TARGETED_DEVICE_FAMILY: "1"
         # Swift 5 mode: WhisperKit itself is built in Swift 5 mode and is not Sendable.

@@ -52,7 +52,7 @@ struct SettingsView: View {
 enum Keychain {
     private static let query: [String: Any] = [
         kSecClass as String: kSecClassGenericPassword,
-        kSecAttrService as String: "uk.co.balenthiran.snipit",
+        kSecAttrService as String: "uk.co.balenthiran.yourstudio",
         kSecAttrAccount as String: "snip-it",
     ]
 
