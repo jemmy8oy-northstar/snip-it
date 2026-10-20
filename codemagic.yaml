@@ -41,6 +41,14 @@ workflows:
         - pattern: dev
           include: true
           source: true
+    # Most dev pushes are the web app. Skip those: a build runs only when ios/
+    # (or this file, which Codemagic always watches) changed since the last
+    # successful build. A skipped build still starts and fetches the source,
+    # then stops, so it costs seconds of mac time rather than a full archive.
+    when:
+      changeset:
+        includes:
+          - 'ios/'
     integrations:
       app_store_connect: CodeMagicKeyDealMapper
     environment:
