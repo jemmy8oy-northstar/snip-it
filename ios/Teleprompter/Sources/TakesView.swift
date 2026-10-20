@@ -1,3 +1,4 @@
+import AVKit
 import Photos
 import SnipItClient
 import SwiftUI
@@ -43,6 +44,7 @@ struct TakesView: View {
     @State private var takes: [Take] = []
     @State private var working: URL?
     @State private var message: String?
+    @State private var playing: Take?
 
     var body: some View {
         NavigationStack {
@@ -57,6 +59,9 @@ struct TakesView: View {
             .navigationTitle("Takes")
             .refreshable { takes = TakeLibrary.all() }
             .onAppear { takes = TakeLibrary.all() }
+            .fullScreenCover(item: $playing) { take in
+                TakePlayer(url: take.url)
+            }
             .alert("Takes", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
                 Button("OK") { message = nil }
             } message: {
@@ -67,12 +72,22 @@ struct TakesView: View {
 
     private func row(_ take: Take) -> some View {
         HStack {
-            VStack(alignment: .leading) {
-                Text(take.date.formatted(date: .abbreviated, time: .shortened))
-                Text(take.isCut ? "Pauses cut" : "Original")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            Button {
+                playing = take
+            } label: {
+                HStack {
+                    Image(systemName: "play.circle")
+                        .font(.title2)
+                    VStack(alignment: .leading) {
+                        Text(take.date.formatted(date: .abbreviated, time: .shortened))
+                        Text(take.isCut ? "Pauses cut" : "Original")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
+            .buttonStyle(.plain)
+            .accessibilityHint("Plays the take")
             Spacer()
             if working == take.url {
                 ProgressView()
@@ -149,5 +164,30 @@ struct TakesView: View {
         case .timedOut: "snip-it took too long. Try again in a minute."
         case .noDownload: "snip-it finished but sent no video back."
         }
+    }
+}
+
+/// A take played full screen with the system player (BEH-TELE-3), so scrubbing, AirPlay and
+/// picture in picture come for free.
+struct TakePlayer: View {
+    @State private var player: AVPlayer
+    @Environment(\.dismiss) private var dismiss
+
+    init(url: URL) {
+        _player = State(initialValue: AVPlayer(url: url))
+    }
+
+    var body: some View {
+        // Done sits in a bar above the video: an overlay would cover the player's own corner controls.
+        NavigationStack {
+            VideoPlayer(player: player)
+                .background(.black)
+                .toolbar {
+                    Button("Done") { dismiss() }
+                }
+                .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .onAppear { player.play() }
+        .onDisappear { player.pause() }
     }
 }
