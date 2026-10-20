@@ -24,21 +24,23 @@
 #     and paste the contents of `cert_key` in as the value.
 #   An app record in App Store Connect for the bundle id below.
 #
-# Triggers on every push to `dev`, and can still be started by hand from the UI.
+# Triggers on pushes to `ios-release`, and can still be started by hand from the UI.
 # Needs the Codemagic webhook on the repo, which is added when the app is connected.
 workflows:
   ios-testflight:
     name: Teleprompter → TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 60
-    # Builds every push to `dev`. Once the app is stable enough that not every dev
-    # push should land in TestFlight, change this pattern to `main` and let dev
-    # merges reach testers only on release.
+    # Builds pushes to `ios-release` only, so a TestFlight build is a choice, not a
+    # side effect of every dev merge. Release by fast-forwarding it to dev:
+    #   git push origin origin/dev:ios-release
+    # Its own branch rather than `main`, so the app ships on its own clock and
+    # not with the web app's promotions.
     triggering:
       events:
         - push
       branch_patterns:
-        - pattern: dev
+        - pattern: ios-release
           include: true
           source: true
     # Most dev pushes are the web app. Skip those: a build runs only when ios/
