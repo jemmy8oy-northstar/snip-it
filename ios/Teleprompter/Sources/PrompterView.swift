@@ -91,7 +91,7 @@ struct PrompterView: View {
 
     var body: some View {
         ZStack {
-            CameraPreview(session: session.recorder.session)
+            CameraPreview(recorder: session.recorder)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -176,7 +176,16 @@ struct PrompterView: View {
 
             Spacer()
 
-            Color.clear.frame(width: 56, height: 56)
+            Button {
+                session.recorder.switchCamera()
+            } label: {
+                Image(systemName: "arrow.triangle.2.circlepath.camera")
+                    .font(.title2)
+                    .frame(width: 56, height: 56)
+                    .background(.black.opacity(0.5), in: Circle())
+            }
+            .disabled(session.isRecording || !session.isReady)
+            .accessibilityLabel("Switch camera")
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 24)
