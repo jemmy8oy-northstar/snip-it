@@ -32,6 +32,12 @@ targets:
       properties:
         CFBundleDisplayName: Teleprompter
         CFBundleIconName: AppIcon
+        # Reference the build settings rather than literals: without these two,
+        # xcodegen writes a hardcoded CFBundleVersion of 1, and the CI override
+        # (CURRENT_PROJECT_VERSION=$BUILD_NUMBER) has nothing to substitute into,
+        # so every upload collides with the previous one.
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
         # Export compliance: declares the app uses no non-exempt encryption, so
         # TestFlight stops asking before each build can reach testers. If the app
         # ever adds its own crypto (not HTTPS, which is exempt), this must change
@@ -46,6 +52,11 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: uk.co.balenthiran.yourstudio
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Local defaults. Codemagic overrides CURRENT_PROJECT_VERSION with
+        # $BUILD_NUMBER at archive time; TestFlight rejects a repeated build
+        # number, and build 1 is already taken.
+        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "1.0"
         # iPhone only: the layout is portrait-only, and an iPad build would need every orientation.
         TARGETED_DEVICE_FAMILY: "1"
         # Swift 5 mode: WhisperKit itself is built in Swift 5 mode and is not Sendable.
