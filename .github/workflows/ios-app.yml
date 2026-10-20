@@ -20,13 +20,19 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-15
+    # macos-26, for Xcode 26 and the iOS 26 SDK. Codemagic archives with `xcode: latest`,
+    # and macos-15's default was Xcode 16.4, so this job proved a different compiler than
+    # the one that ships, and could not compile iOS 26 APIs at all.
+    runs-on: macos-26
     timeout-minutes: 30
     defaults:
       run:
         working-directory: ios/Teleprompter
     steps:
       - uses: actions/checkout@v4
+
+      - name: Show the Xcode in use
+        run: xcodebuild -version
 
       - name: Generate the Xcode project
         run: |
