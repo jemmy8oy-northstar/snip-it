@@ -23,6 +23,7 @@ final class CameraRecorder: NSObject, AVCaptureFileOutputRecordingDelegate, @unc
     private let queue = DispatchQueue(label: "camera")
     private var finished: CheckedContinuation<URL, Error>?
     private var configured = false
+    private var video: AVCaptureDeviceInput?
 
     func configure() async throws {
         guard await AVCaptureDevice.requestAccess(for: .video),
@@ -69,10 +70,65 @@ final class CameraRecorder: NSObject, AVCaptureFileOutputRecordingDelegate, @unc
         session.addInput(video)
         session.addInput(sound)
         session.addOutput(output)
-        // Without this a portrait take is saved landscape: the movie output records the
-        // sensor's orientation unless its connection is told otherwise.
-        output.connection(with: .video)?.videoRotationAngle = 90
+        self.video = video
+        uprightRecording()
         configured = true
+    }
+
+    /// Without this a portrait take is saved landscape: the movie output records the sensor's
+    /// orientation unless its connection is told otherwise. A new camera means a new connection.
+    private func uprightRecording() {
+        output.connection(with: .video)?.videoRotationAngle = 90
+    }
+
+    // MARK: Camera controls (BEH-TELE-4)
+
+    /// Front to back or back to front. Not while recording: the take would change camera mid-file.
+    func switchCamera() {
+        queue.async {
+            guard let current = self.video, !self.output.isRecording else { return }
+            let position: AVCaptureDevice.Position = current.device.position == .front ? .back : .front
+            guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
+                  let next = try? AVCaptureDeviceInput(device: camera) else { return }
+            self.session.beginConfiguration()
+            defer { self.session.commitConfiguration() }
+            self.session.removeInput(current)
+            if self.session.canAddInput(next) {
+                self.session.addInput(next)
+                self.video = next
+            } else {
+                self.session.addInput(current)
+            }
+            self.uprightRecording()
+        }
+    }
+
+    /// Multiplies the zoom by `scale`, as a pinch does, within what the camera allows (capped at 5×,
+    /// past which a selfie is only noise).
+    func zoom(by scale: CGFloat) {
+        queue.async {
+            guard let device = self.video?.device, (try? device.lockForConfiguration()) != nil else { return }
+            defer { device.unlockForConfiguration() }
+            let upper = min(device.maxAvailableVideoZoomFactor, 5)
+            device.videoZoomFactor = max(device.minAvailableVideoZoomFactor, min(device.videoZoomFactor * scale, upper))
+        }
+    }
+
+    /// Focuses and exposes on a point in the camera's own coordinates, (0,0) to (1,1); the preview
+    /// layer converts a tap into these.
+    func focus(at point: CGPoint) {
+        queue.async {
+            guard let device = self.video?.device, (try? device.lockForConfiguration()) != nil else { return }
+            defer { device.unlockForConfiguration() }
+            if device.isFocusPointOfInterestSupported, device.isFocusModeSupported(.autoFocus) {
+                device.focusPointOfInterest = point
+                device.focusMode = .autoFocus
+            }
+            if device.isExposurePointOfInterestSupported, device.isExposureModeSupported(.autoExpose) {
+                device.exposurePointOfInterest = point
+                device.exposureMode = .autoExpose
+            }
+        }
     }
 
     func startRunning() {
@@ -119,20 +175,54 @@ final class CameraRecorder: NSObject, AVCaptureFileOutputRecordingDelegate, @unc
     }
 }
 
+/// The live camera. Pinch to zoom; tap to focus and expose there. The gestures live on the
+/// UIKit view because only its preview layer can turn a screen point into a camera point.
 struct CameraPreview: UIViewRepresentable {
-    let session: AVCaptureSession
+    let recorder: CameraRecorder
 
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
-        view.previewLayer.session = session
+        view.recorder = recorder
+        view.previewLayer.session = recorder.session
         view.previewLayer.videoGravity = .resizeAspectFill
+        view.addGestureRecognizer(UITapGestureRecognizer(target: view, action: #selector(PreviewView.tapped(_:))))
+        view.addGestureRecognizer(UIPinchGestureRecognizer(target: view, action: #selector(PreviewView.pinched(_:))))
         return view
     }
 
     func updateUIView(_ uiView: PreviewView, context: Context) {}
 
     final class PreviewView: UIView {
+        weak var recorder: CameraRecorder?
         override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
         var previewLayer: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+
+        @objc func tapped(_ tap: UITapGestureRecognizer) {
+            let point = tap.location(in: self)
+            recorder?.focus(at: previewLayer.captureDevicePointConverted(fromLayerPoint: point))
+            showFocus(at: point)
+        }
+
+        @objc func pinched(_ pinch: UIPinchGestureRecognizer) {
+            guard pinch.state == .changed else { return }
+            recorder?.zoom(by: pinch.scale)
+            // Each callback then carries only the change since the last, which zoom(by:) multiplies in.
+            pinch.scale = 1
+        }
+
+        /// A brief square where the tap landed, so the tap visibly did something.
+        private func showFocus(at point: CGPoint) {
+            let square = UIView(frame: CGRect(x: 0, y: 0, width: 72, height: 72))
+            square.center = point
+            square.layer.borderColor = UIColor.systemYellow.cgColor
+            square.layer.borderWidth = 2
+            square.isUserInteractionEnabled = false
+            addSubview(square)
+            UIView.animate(withDuration: 0.3, delay: 0.6, options: []) {
+                square.alpha = 0
+            } completion: { _ in
+                square.removeFromSuperview()
+            }
+        }
     }
 }
