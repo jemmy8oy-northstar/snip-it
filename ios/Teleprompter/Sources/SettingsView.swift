@@ -7,6 +7,7 @@ struct SettingsView: View {
     @AppStorage(SettingKey.maxPause) private var maxPause = 0.6
     @AppStorage(SettingKey.whisperModel) private var whisperModel = "base.en"
     @State private var password = Keychain.password ?? ""
+    private let models = SpeechModels.shared
 
     var body: some View {
         NavigationStack {
@@ -34,16 +35,92 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    TextField("Model", text: $whisperModel)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    // The chosen one is listed even if it is not ours: this used to be a free-text field.
+                    ForEach(models.supported + (models.supported.contains(whisperModel) ? [] : [whisperModel]), id: \.self) { variant in
+                        SpeechModelRow(variant: variant, chosen: $whisperModel)
+                    }
                 } header: {
                     Text("Speech model")
                 } footer: {
-                    Text("A WhisperKit model, downloaded on first use. Smaller is faster: tiny.en, base.en, small.en.")
+                    Text("The prompter follows your voice with the ticked model. Smaller listens faster; bigger hears more accurately. The first download is prepared for this iPhone, which can take a minute.")
                 }
             }
             .navigationTitle("Settings")
+        }
+    }
+}
+
+/// One speech model: tick to choose it, and its state with the one action that state allows.
+struct SpeechModelRow: View {
+    let variant: String
+    @Binding var chosen: String
+    private let models = SpeechModels.shared
+
+    var body: some View {
+        HStack {
+            Button {
+                chosen = variant
+            } label: {
+                HStack {
+                    Image(systemName: chosen == variant ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(chosen == variant ? Color.accentColor : .secondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(variant)
+                        detail
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            action
+        }
+        .swipeActions {
+            if models.status(of: variant) == .ready {
+                Button("Delete", systemImage: "trash", role: .destructive) { models.delete(variant) }
+            }
+        }
+    }
+
+    @ViewBuilder private var detail: some View {
+        switch models.status(of: variant) {
+        case .notDownloaded:
+            Text("Not downloaded").font(.caption).foregroundStyle(.secondary)
+        case .downloading(let fraction):
+            ProgressView(value: fraction) {
+                Text("Downloading \(fraction.formatted(.percent.precision(.fractionLength(0))))").font(.caption)
+            }
+        case .preparing:
+            Text("Preparing for this iPhone…").font(.caption).foregroundStyle(.secondary)
+        case .ready:
+            Text("Ready. Swipe to delete.").font(.caption).foregroundStyle(.secondary)
+        case .failed(let reason):
+            Text(reason).font(.caption).foregroundStyle(.red)
+        }
+    }
+
+    @ViewBuilder private var action: some View {
+        switch models.status(of: variant) {
+        case .notDownloaded:
+            Button("Download") { Task { await models.download(variant) } }
+                .buttonStyle(.bordered)
+        case .failed:
+            // A model that downloaded but would not load only needs preparing again.
+            Button("Try again") {
+                Task {
+                    if models.isDownloaded(variant) {
+                        _ = try? await models.engine(for: variant)
+                    } else {
+                        await models.download(variant)
+                    }
+                }
+            }
+            .buttonStyle(.bordered)
+        case .downloading, .preparing:
+            ProgressView()
+        case .ready:
+            EmptyView()
         }
     }
 }

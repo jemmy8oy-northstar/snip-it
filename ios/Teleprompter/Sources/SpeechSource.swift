@@ -4,19 +4,32 @@ import Foundation
 /// Where the prompter hears from. One engine today; the protocol is what keeps a swap cheap.
 protocol SpeechSource: AnyObject {
     /// Starts listening. `heard` gets everything heard so far in this run, again each time the
-    /// engine revises it, which is the shape `ScriptFollower.hear` takes. `status` gets
-    /// human-readable progress ("Downloading the speech model…"), or "" once it is listening.
+    /// engine revises it, which is the shape `ScriptFollower.hear` takes. `status` gets "" once it
+    /// is listening, or why it stopped. A failure to start is thrown instead.
     func start(heard: @escaping @Sendable (String) -> Void, status: @escaping @Sendable (String) -> Void) async throws
     func stop() async
 }
 
+/// Each case names the step that failed, so the message on screen says where to look.
 enum SpeechError: LocalizedError {
-    case modelNotLoaded
+    case notDownloaded(String)
+    case loadFailed(String)
+    case listeningFailed(String)
 
-    var errorDescription: String? { "The speech model did not load." }
+    var errorDescription: String? {
+        switch self {
+        case .notDownloaded(let model):
+            "The speech model (\(model)) isn't downloaded. Download it in Settings. Until then, tap a line to move on."
+        case .loadFailed(let reason):
+            "The speech model would not load: \(reason)"
+        case .listeningFailed(let reason):
+            "Listening stopped: \(reason)"
+        }
+    }
 }
 
-/// WhisperKit, on-device (his call on claude-code-bot#105). The model downloads on first use.
+/// WhisperKit, on-device (his call on claude-code-bot#105). Models are downloaded in Settings
+/// (`SpeechModels`); this only ever uses one that is already on the phone.
 ///
 /// ⚠️ Untested on a device: WhisperKit captures the mic through its own AVAudioEngine while the
 /// camera records audio through AVCaptureSession. `CameraRecorder` stops the capture session
@@ -25,7 +38,6 @@ enum SpeechError: LocalizedError {
 /// into WhisperKit instead of letting it record.
 final class WhisperKitSpeechSource: SpeechSource {
     private let model: String
-    private var whisperKit: WhisperKit?
     private var transcriber: AudioStreamTranscriber?
     private var listening: Task<Void, Never>?
 
@@ -33,25 +45,10 @@ final class WhisperKitSpeechSource: SpeechSource {
         self.model = model
     }
 
-    /// One engine across prompter runs, so the model loads once rather than on every run.
-    /// Picking a different model in Settings gets a fresh one.
-    @MainActor
-    static func shared(model: String) -> WhisperKitSpeechSource {
-        if let cached, cached.model == model { return cached }
-        let source = WhisperKitSpeechSource(model: model)
-        cached = source
-        return source
-    }
-
-    @MainActor private static var cached: WhisperKitSpeechSource?
-
     func start(heard: @escaping @Sendable (String) -> Void, status: @escaping @Sendable (String) -> Void) async throws {
-        if whisperKit == nil {
-            status("Loading the speech model. The first time, this downloads it…")
-            whisperKit = try await WhisperKit(WhisperKitConfig(model: model))
-        }
-        guard let kit = whisperKit, let tokenizer = kit.tokenizer else {
-            throw SpeechError.modelNotLoaded
+        let kit = try await SpeechModels.shared.engine(for: model)
+        guard let tokenizer = kit.tokenizer else {
+            throw SpeechError.loadFailed("its tokenizer did not load")
         }
 
         let transcriber = AudioStreamTranscriber(
@@ -75,7 +72,7 @@ final class WhisperKitSpeechSource: SpeechSource {
             do {
                 try await transcriber.startStreamTranscription()
             } catch {
-                status(error.localizedDescription)
+                status(SpeechError.listeningFailed(error.localizedDescription).localizedDescription)
             }
         }
     }

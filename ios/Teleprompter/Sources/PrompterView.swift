@@ -31,6 +31,9 @@ final class PrompterSession {
             try await recorder.configure()
             recorder.startRunning()
             isReady = true
+            // Set here, not through `status:` below: that hops through a Task, so it could land
+            // after, and hide, an error thrown straight back.
+            status = "Preparing the speech model…"
             try await speech.start(
                 heard: { [weak self] text in Task { @MainActor in self?.hear(text) } },
                 status: { [weak self] text in Task { @MainActor in self?.status = text.isEmpty ? nil : text } }
@@ -83,7 +86,7 @@ struct PrompterView: View {
     @Environment(\.dismiss) private var dismiss
 
     init(script: String, model: String) {
-        _session = State(initialValue: PrompterSession(script: script, speech: WhisperKitSpeechSource.shared(model: model)))
+        _session = State(initialValue: PrompterSession(script: script, speech: WhisperKitSpeechSource(model: model)))
     }
 
     var body: some View {
