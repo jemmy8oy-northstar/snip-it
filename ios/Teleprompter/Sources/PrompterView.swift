@@ -17,6 +17,10 @@ final class PrompterSession {
     /// The microphone's loudness, 0 to 1, and the last few words heard: the proof it is listening.
     private(set) var level: Float = 0
     private(set) var lastHeard = ""
+    /// The square front camera of an iPhone 17 can save a landscape take while the phone stays
+    /// upright (BEH-TELE-5). Elsewhere the choice is hidden, not shown disabled.
+    private(set) var canChangeShape = false
+    private(set) var landscape = false
 
     private var follower: ScriptFollower
     private let speech: any SpeechSource
@@ -37,6 +41,7 @@ final class PrompterSession {
             try await recorder.configure()
             recorder.startRunning()
             isReady = true
+            canChangeShape = recorder.canChangeShape
             // Set here, not through `status:` below: that hops through a Task, so it could land
             // after, and hide, an error thrown straight back.
             status = "Preparing the speech model…"
@@ -75,6 +80,25 @@ final class PrompterSession {
     func move(to line: Int) {
         follower.move(toLine: line)
         moved()
+    }
+
+    func toggleShape() async {
+        let wanted = !landscape
+        if await recorder.setLandscape(wanted) {
+            landscape = wanted
+        } else {
+            status = "This camera would not switch to \(wanted ? "landscape" : "portrait")."
+        }
+    }
+
+    /// The other camera has its own shape, if any: a new camera starts portrait.
+    func switchCamera() async {
+        recorder.switchCamera()
+        canChangeShape = recorder.canChangeShape
+        if canChangeShape, landscape {
+            _ = await recorder.setLandscape(false)
+        }
+        landscape = false
     }
 
     private func moved() {
@@ -126,7 +150,7 @@ struct PrompterView: View {
 
     var body: some View {
         ZStack {
-            CameraPreview(recorder: session.recorder)
+            CameraPreview(recorder: session.recorder, landscape: session.landscape)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -255,16 +279,32 @@ struct PrompterView: View {
 
             Spacer()
 
-            Button {
-                session.recorder.switchCamera()
-            } label: {
-                Image(systemName: "arrow.triangle.2.circlepath.camera")
-                    .font(.title2)
-                    .frame(width: 56, height: 56)
-                    .background(.black.opacity(0.5), in: Circle())
+            // Stacked, so the record button stays centred.
+            VStack(spacing: 12) {
+                if session.canChangeShape {
+                    Button {
+                        Task { await session.toggleShape() }
+                    } label: {
+                        Image(systemName: session.landscape ? "rectangle" : "rectangle.portrait")
+                            .font(.title2)
+                            .frame(width: 56, height: 56)
+                            .background(.black.opacity(0.5), in: Circle())
+                    }
+                    .disabled(session.isRecording)
+                    .accessibilityLabel(session.landscape ? "Landscape take. Switch to portrait" : "Portrait take. Switch to landscape")
+                }
+
+                Button {
+                    Task { await session.switchCamera() }
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath.camera")
+                        .font(.title2)
+                        .frame(width: 56, height: 56)
+                        .background(.black.opacity(0.5), in: Circle())
+                }
+                .disabled(session.isRecording || !session.isReady)
+                .accessibilityLabel("Switch camera")
             }
-            .disabled(session.isRecording || !session.isReady)
-            .accessibilityLabel("Switch camera")
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 24)

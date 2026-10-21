@@ -58,7 +58,7 @@ final class CameraRecorder: NSObject, AVCaptureFileOutputRecordingDelegate, @unc
         session.automaticallyConfiguresApplicationAudioSession = false
         session.sessionPreset = .high
 
-        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
+        guard let camera = Self.camera(at: .front),
               let mic = AVCaptureDevice.default(for: .audio) else {
             throw RecorderError.noCamera
         }
@@ -75,6 +75,51 @@ final class CameraRecorder: NSObject, AVCaptureFileOutputRecordingDelegate, @unc
         configured = true
     }
 
+    /// The camera at `position`. At the front, the one with a square sensor if there is one
+    /// (iPhone 17's Center Stage camera), so a take can be cropped either shape (BEH-TELE-5).
+    private static func camera(at position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+        if #available(iOS 26, *), position == .front {
+            let found = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [.builtInUltraWideCamera, .builtInWideAngleCamera], mediaType: .video, position: .front)
+            if let square = found.devices.first(where: { !ShapeCrop.formats(of: $0).isEmpty }) {
+                return square
+            }
+        }
+        return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position)
+    }
+
+    // MARK: Landscape with the phone upright (BEH-TELE-5)
+
+    /// Whether this camera can switch between a portrait and a landscape take. Read once
+    /// `configure` has returned, and after `switchCamera`.
+    var canChangeShape: Bool {
+        queue.sync {
+            guard #available(iOS 26, *), let device = video?.device else { return false }
+            return !ShapeCrop.formats(of: device).isEmpty
+        }
+    }
+
+    /// Crops the square sensor to a landscape or portrait take, and reports which it got.
+    ///
+    /// Which of `.ratio16x9` and `.ratio9x16` gives a landscape FILE depends on whether the
+    /// ratio names the sensor's buffer or the rotated output, and the documentation does not
+    /// say. So this does not guess: it sets one, measures the buffer it produces, works out the
+    /// shape after the connection's 90° turn, and tries the other ratio if that was wrong.
+    /// Returns false when neither ratio gave the shape asked for, so the screen can say so.
+    func setLandscape(_ landscape: Bool) async -> Bool {
+        guard #available(iOS 26, *) else { return false }
+        let (device, rotation, recording) = queue.sync {
+            (video?.device, output.connection(with: .video)?.videoRotationAngle ?? 90, output.isRecording)
+        }
+        guard let device, !recording, let format = ShapeCrop.formats(of: device).first else { return false }
+        for ratio in [AVCaptureDevice.AspectRatio.ratio9x16, .ratio16x9] {
+            if await ShapeCrop.apply(ratio, format: format, to: device, rotation: rotation) == landscape {
+                return true
+            }
+        }
+        return false
+    }
+
     /// Without this a portrait take is saved landscape: the movie output records the sensor's
     /// orientation unless its connection is told otherwise. A new camera means a new connection.
     private func uprightRecording() {
@@ -88,7 +133,7 @@ final class CameraRecorder: NSObject, AVCaptureFileOutputRecordingDelegate, @unc
         queue.async {
             guard let current = self.video, !self.output.isRecording else { return }
             let position: AVCaptureDevice.Position = current.device.position == .front ? .back : .front
-            guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
+            guard let camera = Self.camera(at: position),
                   let next = try? AVCaptureDeviceInput(device: camera) else { return }
             self.session.beginConfiguration()
             defer { self.session.commitConfiguration() }
@@ -175,10 +220,58 @@ final class CameraRecorder: NSObject, AVCaptureFileOutputRecordingDelegate, @unc
     }
 }
 
+/// Cropping a square sensor to a shape (BEH-TELE-5). AVFoundation calls it dynamic aspect ratio.
+@available(iOS 26, *)
+enum ShapeCrop {
+    /// Formats that can crop both ways at 30 fps, largest first but no bigger than 4K, since a
+    /// prompter take does not need more and a bigger frame costs storage and heat.
+    static func formats(of device: AVCaptureDevice) -> [AVCaptureDevice.Format] {
+        device.formats
+            .filter { format in
+                let ratios = format.supportedDynamicAspectRatios
+                let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                return ratios.contains(.ratio16x9) && ratios.contains(.ratio9x16)
+                    && max(dims.width, dims.height) <= 4096
+                    && format.videoSupportedFrameRateRanges.contains { $0.maxFrameRate >= 30 }
+            }
+            .sorted {
+                let a = CMVideoFormatDescriptionGetDimensions($0.formatDescription)
+                let b = CMVideoFormatDescriptionGetDimensions($1.formatDescription)
+                return Int(a.width) * Int(a.height) > Int(b.width) * Int(b.height)
+            }
+    }
+
+    /// Sets `ratio` and returns whether the saved file will be wider than it is tall, measured
+    /// from the buffer the camera now produces and the connection's rotation. Nil if it failed.
+    static func apply(_ ratio: AVCaptureDevice.AspectRatio, format: AVCaptureDevice.Format,
+                      to device: AVCaptureDevice, rotation: CGFloat) async -> Bool? {
+        let applied: Bool = await withCheckedContinuation { done in
+            do {
+                try device.lockForConfiguration()
+            } catch {
+                done.resume(returning: false)
+                return
+            }
+            if device.activeFormat != format {
+                device.activeFormat = format
+            }
+            // The lock is needed to make the call, not until it completes.
+            device.setDynamicAspectRatio(ratio) { _, error in done.resume(returning: error == nil) }
+            device.unlockForConfiguration()
+        }
+        guard applied else { return nil }
+        let dims = device.dynamicDimensions
+        let turned = Int(rotation) % 180 != 0
+        return turned ? dims.height > dims.width : dims.width > dims.height
+    }
+}
+
 /// The live camera. Pinch to zoom; tap to focus and expose there. The gestures live on the
 /// UIKit view because only its preview layer can turn a screen point into a camera point.
 struct CameraPreview: UIViewRepresentable {
     let recorder: CameraRecorder
+    /// A landscape take is shown whole, letterboxed, so the framing on screen is the framing saved.
+    var landscape = false
 
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
@@ -190,7 +283,9 @@ struct CameraPreview: UIViewRepresentable {
         return view
     }
 
-    func updateUIView(_ uiView: PreviewView, context: Context) {}
+    func updateUIView(_ uiView: PreviewView, context: Context) {
+        uiView.previewLayer.videoGravity = landscape ? .resizeAspect : .resizeAspectFill
+    }
 
     final class PreviewView: UIView {
         weak var recorder: CameraRecorder?
