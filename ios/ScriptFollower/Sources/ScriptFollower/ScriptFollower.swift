@@ -34,7 +34,8 @@ public struct ScriptFollower {
         var lineOfWord: [Int] = []
         for raw in script.split(whereSeparator: \.isNewline) {
             let lineWords = Words.of(String(raw))
-            if lineWords.isEmpty {
+            // Section markers are for planning; the prompter reads straight through (BEH-SCRIPT-1).
+            if lineWords.isEmpty || ScriptSections.isMarker(raw) {
                 continue
             }
             for w in lineWords {
