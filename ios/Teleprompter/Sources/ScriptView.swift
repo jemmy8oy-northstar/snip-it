@@ -20,28 +20,35 @@ struct ScriptView: View {
     @State private var loaded = false
     @State private var prompting = false
     @State private var managing = false
+    @State private var showingCoverage = false
+    @State private var coverage: [TakeCoverage] = []
     @State private var error: String?
 
     private var script: String { ScriptSections.join(sections.map(\.section)) }
+    private var takes: TakeLibrary { TakeLibrary(directory: store.takes(of: production.id)) }
 
     var body: some View {
         List {
             ForEach($sections) { $item in
                 DisclosureGroup(isExpanded: Binding(get: { !item.folded }, set: { item.folded = !$0 })) {
-                    TextEditor(text: $item.section.body)
-                        .font(.title3)
-                        .frame(minHeight: 140)
-                        .overlay(alignment: .topLeading) {
-                            if item.section.body.isEmpty {
-                                Text("Paste or write this section. Each line is one prompter line.")
-                                    .foregroundStyle(.secondary)
-                                    .padding(.top, 8)
-                                    .padding(.leading, 5)
-                                    .allowsHitTesting(false)
+                    if showingCoverage {
+                        CoverageLines(section: item.section, takes: coverage)
+                    } else {
+                        TextEditor(text: $item.section.body)
+                            .font(.title3)
+                            .frame(minHeight: 140)
+                            .overlay(alignment: .topLeading) {
+                                if item.section.body.isEmpty {
+                                    Text("Paste or write this section. Each line is one prompter line.")
+                                        .foregroundStyle(.secondary)
+                                        .padding(.top, 8)
+                                        .padding(.leading, 5)
+                                        .allowsHitTesting(false)
+                                }
                             }
-                        }
+                    }
                 } label: {
-                    SectionLabel(section: item.section, folded: item.folded)
+                    SectionLabel(section: item.section, folded: item.folded, takes: coverage)
                 }
             }
             Button("Add section", systemImage: "plus") {
@@ -56,6 +63,11 @@ struct ScriptView: View {
                 Button("Fold all", systemImage: "rectangle.compress.vertical") { setFolded(true) }
                 Button("Unfold all", systemImage: "rectangle.expand.vertical") { setFolded(false) }
                 Button("Manage sections", systemImage: "list.bullet.indent") { managing = true }
+                Button(showingCoverage ? "Edit script" : "Show coverage",
+                       systemImage: showingCoverage ? "pencil" : "checklist") {
+                    coverage = takes.coverage()
+                    showingCoverage.toggle()
+                }
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -81,8 +93,8 @@ struct ScriptView: View {
         .sheet(isPresented: $managing) {
             ManageSectionsView(sections: $sections)
         }
-        .fullScreenCover(isPresented: $prompting) {
-            PrompterView(script: script, model: model, takes: TakeLibrary(directory: store.takes(of: production.id)))
+        .fullScreenCover(isPresented: $prompting, onDismiss: { coverage = takes.coverage() }) {
+            PrompterView(script: script, model: model, takes: takes)
         }
     }
 
@@ -94,6 +106,7 @@ struct ScriptView: View {
         loaded = true
         let parsed = ScriptSections.parse(store.script(of: production))
         sections = (parsed.isEmpty ? [ScriptSection()] : parsed).map { EditableSection(section: $0) }
+        coverage = takes.coverage()
     }
 
     private func save() {
@@ -116,6 +129,7 @@ struct ScriptView: View {
 private struct SectionLabel: View {
     let section: ScriptSection
     let folded: Bool
+    let takes: [TakeCoverage]
 
     var body: some View {
         HStack {
@@ -123,12 +137,48 @@ private struct SectionLabel: View {
                 .font(.headline)
                 .foregroundStyle(section.name == nil ? .secondary : .primary)
             Spacer()
-            if folded {
+            if !takes.isEmpty, section.lineCount > 0 {
+                let covered = section.lines.filter { TakeCoverage.count(of: $0, in: takes) > 0 }.count
+                Text("\(covered)/\(section.lineCount) covered")
+                    .font(.caption)
+                    .foregroundStyle(covered == section.lineCount ? Color.green : Color.secondary)
+            } else if folded {
                 Text(section.lineCount == 1 ? "1 line" : "\(section.lineCount) lines")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+/// A section's lines, each with how many takes covered it (BEH-SCRIPT-4). Read-only: "Edit
+/// script" in the menu goes back to editing.
+private struct CoverageLines: View {
+    let section: ScriptSection
+    let takes: [TakeCoverage]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if section.lines.isEmpty {
+                Text("No lines yet.").foregroundStyle(.secondary)
+            }
+            ForEach(Array(section.lines.enumerated()), id: \.offset) { _, line in
+                let count = TakeCoverage.count(of: line, in: takes)
+                HStack(alignment: .firstTextBaseline) {
+                    Image(systemName: count > 0 ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(count > 0 ? Color.green : Color.secondary)
+                    Text(line)
+                    Spacer()
+                    if count > 0 {
+                        Text(count == 1 ? "1 take" : "\(count) takes")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 

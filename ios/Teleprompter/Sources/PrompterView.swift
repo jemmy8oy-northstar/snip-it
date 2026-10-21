@@ -1,4 +1,5 @@
 import Observation
+import Productions
 import ScriptFollower
 import SwiftUI
 
@@ -52,6 +53,7 @@ final class PrompterSession {
     func stop() async {
         if isRecording {
             _ = try? await recorder.stopRecording()
+            saveCoverage()
             isRecording = false
         }
         await speech.stop()
@@ -65,20 +67,26 @@ final class PrompterSession {
     func hear(_ text: String) {
         lastHeard = text.split(separator: " ").suffix(6).joined(separator: " ")
         if follower.hear(text) {
-            currentLine = follower.currentLine
+            moved()
         }
     }
 
     /// A tap on a line: the way back for a retake, or forward past a skipped line.
     func move(to line: Int) {
         follower.move(toLine: line)
+        moved()
+    }
+
+    private func moved() {
         currentLine = follower.currentLine
+        coverage?.moved(to: currentLine)
     }
 
     func toggleRecording() async {
         if isRecording {
             do {
                 _ = try await recorder.stopRecording()
+                saveCoverage()
                 status = "Saved. It's in Takes."
             } catch {
                 status = error.localizedDescription
@@ -86,9 +94,24 @@ final class PrompterSession {
             isRecording = false
         } else {
             status = nil
-            recorder.startRecording(to: takes.newTakeURL())
+            let take = takes.newTakeURL()
+            recording = take
+            coverage = CoverageRecorder(startingAt: currentLine)
+            recorder.startRecording(to: take)
             isRecording = true
         }
+    }
+
+    // Which lines the take covered (BEH-SCRIPT-4), written beside it when it stops.
+    private var recording: URL?
+    private var coverage: CoverageRecorder?
+
+    private func saveCoverage() {
+        if let recording, let coverage {
+            try? coverage.coverage(of: lines).write(for: recording, cutSuffix: TakeLibrary.cutSuffix)
+        }
+        recording = nil
+        coverage = nil
     }
 }
 
