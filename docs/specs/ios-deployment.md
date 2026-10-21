@@ -15,9 +15,10 @@ different CI, different credentials, different failure modes.
 | Signed release | `codemagic.yaml` | Signs, archives, uploads to TestFlight |
 
 GitHub does the free, unsigned half on every PR touching `ios/**`. Codemagic does the release half,
-because it needs Apple credentials that must never be in this repo. Codemagic builds on every push to
-`dev` that changes `ios/` or `codemagic.yaml` (a `when: changeset` filter skips the web-only pushes),
-and can still be started by hand from its UI.
+because it needs Apple credentials that must never be in this repo. Codemagic builds on pushes to
+`ios-release` that change `ios/` or `codemagic.yaml` (a `when: changeset` filter skips the web-only
+pushes), and can still be started by hand from its UI. Merging to `dev` ships nothing to TestFlight;
+releasing is fast-forwarding `ios-release` to `dev`: `git push origin origin/dev:ios-release`.
 
 The Xcode project is **generated** by xcodegen from `ios/Teleprompter/project.yml` and is git-ignored,
 so every pipeline runs `xcodegen` before building. `project.yml` is the source of truth for the bundle
