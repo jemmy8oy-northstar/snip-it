@@ -1,3 +1,4 @@
+import ScriptFollower
 import Security
 import SwiftUI
 
@@ -34,6 +35,8 @@ struct SettingsView: View {
                     }
                 }
 
+                PrompterLayoutSettings()
+
                 Section {
                     // The chosen one is listed even if it is not ours: this used to be a free-text field.
                     ForEach(models.supported + (models.supported.contains(whisperModel) ? [] : [whisperModel]), id: \.self) { variant in
@@ -46,6 +49,37 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+        }
+    }
+}
+
+/// Where the script sits, how big it is and how wide it runs (BEH-TELE-9). Shown in Settings and
+/// in a short sheet over the prompter, so a change can be judged live against your own face.
+struct PrompterLayoutSettings: View {
+    @AppStorage(SettingKey.prompterPosition) private var position = PrompterLayout.standard.position.rawValue
+    @AppStorage(SettingKey.prompterTextSize) private var textSize = PrompterLayout.standard.textSize
+    @AppStorage(SettingKey.prompterWidth) private var width = PrompterLayout.standard.width
+
+    var body: some View {
+        Section {
+            Picker("Position", selection: $position) {
+                Text("Auto").tag(PrompterLayout.Position.automatic.rawValue)
+                Text("Top").tag(PrompterLayout.Position.top.rawValue)
+                Text("Centre").tag(PrompterLayout.Position.centre.rawValue)
+                Text("Bottom").tag(PrompterLayout.Position.bottom.rawValue)
+            }
+            .pickerStyle(.segmented)
+
+            LabeledContent("Size") {
+                Slider(value: $textSize, in: PrompterLayout.textSizes, step: 2)
+            }
+            LabeledContent("Width") {
+                Slider(value: $width, in: PrompterLayout.widths, step: 0.05)
+            }
+        } header: {
+            Text("Script on screen")
+        } footer: {
+            Text("Auto puts the script in the centre on the front camera, so reading looks like looking at yourself, and at the top on the back camera. A narrower script keeps your eyes still on a close-up.")
         }
     }
 }

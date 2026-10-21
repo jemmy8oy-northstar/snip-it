@@ -40,4 +40,8 @@ enum SettingKey {
     static let maxPause = "maxPauseSeconds"
     static let whisperModel = "whisperModel"
     static let speechModelFolders = "speechModelFolders"
+    // Where the script sits, its size and its width (BEH-TELE-9).
+    static let prompterPosition = "prompterPosition"
+    static let prompterTextSize = "prompterTextSize"
+    static let prompterWidth = "prompterWidth"
 }
