@@ -145,6 +145,57 @@ final class ScriptFollowerTests: XCTestCase {
         XCTAssertFalse(f.hear("anything else"))
     }
 
+    // ── what the prompter highlights (BEH-TELE-8) ──
+
+    private func heard(_ f: ScriptFollower, _ line: Int) -> [String] {
+        f.tokens(ofLine: line).filter(\.heard).map(\.text)
+    }
+
+    func testTheWordsHeardSoFarInALineAreHighlighted() {
+        var f = ScriptFollower(script: script)
+        f.hear("hello and welcome")
+        XCTAssertEqual(heard(f, 0), ["Hello", "and", "welcome"])
+        XCTAssertEqual(f.tokens(ofLine: 0).map(\.text), ["Hello", "and", "welcome", "to", "the", "channel."])
+    }
+
+    func testEarlierLinesAreAllHeardAndLaterOnesNone() {
+        var f = ScriptFollower(script: script)
+        f.hear("hello and welcome to the channel")
+        f.hear("today we")
+        XCTAssertEqual(heard(f, 0).count, 6)
+        XCTAssertEqual(heard(f, 1), ["Today", "we"])
+        XCTAssertEqual(heard(f, 2), [])
+    }
+
+    func testNothingIsHighlightedBeforeAWordIsHeard() {
+        let f = ScriptFollower(script: "— Hello there")
+        XCTAssertEqual(heard(f, 0), [])
+    }
+
+    func testPunctuationGoesWithTheWordBesideIt() {
+        var f = ScriptFollower(script: "— Hello — there, well-known friend")
+        f.hear("hello")
+        XCTAssertEqual(heard(f, 0), ["—", "Hello", "—"])
+        // "well-known" is two words, so "well" alone does not light it.
+        f.hear("hello there well")
+        XCTAssertEqual(heard(f, 0), ["—", "Hello", "—", "there,"])
+        f.hear("hello there well known")
+        XCTAssertEqual(heard(f, 0), ["—", "Hello", "—", "there,", "well-known"])
+    }
+
+    func testTappingBackClearsTheHighlight() {
+        var f = ScriptFollower(script: script)
+        f.hear("hello and welcome to the channel")
+        f.move(toLine: 0)
+        XCTAssertEqual(heard(f, 0), [])
+    }
+
+    func testALineOutOfRangeHasNoTokens() {
+        let f = ScriptFollower(script: script)
+        XCTAssertEqual(f.tokens(ofLine: 5), [])
+        XCTAssertEqual(f.tokens(ofLine: -1), [])
+    }
+
     func testAnEmptyScriptIsFinishedAndNeverMoves() {
         var f = ScriptFollower(script: "\n  \n")
         XCTAssertTrue(f.lines.isEmpty)

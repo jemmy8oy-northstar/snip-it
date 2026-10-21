@@ -5,8 +5,13 @@ import Foundation
 protocol SpeechSource: AnyObject {
     /// Starts listening. `heard` gets everything heard so far in this run, again each time the
     /// engine revises it, which is the shape `ScriptFollower.hear` takes. `status` gets "" once it
-    /// is listening, or why it stopped. A failure to start is thrown instead.
-    func start(heard: @escaping @Sendable (String) -> Void, status: @escaping @Sendable (String) -> Void) async throws
+    /// is listening, or why it stopped. `level` gets the microphone's loudness, 0 to 1, so the
+    /// screen can show it is hearing anything at all. A failure to start is thrown instead.
+    func start(
+        heard: @escaping @Sendable (String) -> Void,
+        level: @escaping @Sendable (Float) -> Void,
+        status: @escaping @Sendable (String) -> Void
+    ) async throws
     func stop() async
 }
 
@@ -45,7 +50,15 @@ final class WhisperKitSpeechSource: SpeechSource {
         self.model = model
     }
 
-    func start(heard: @escaping @Sendable (String) -> Void, status: @escaping @Sendable (String) -> Void) async throws {
+    /// WhisperKit's own voice-activity gate: buffers quieter than this, on `level`'s scale, are
+    /// skipped as silence and never transcribed. The prompter marks it on the level meter.
+    static let silenceThreshold: Float = 0.3
+
+    func start(
+        heard: @escaping @Sendable (String) -> Void,
+        level: @escaping @Sendable (Float) -> Void,
+        status: @escaping @Sendable (String) -> Void
+    ) async throws {
         let kit = try await SpeechModels.shared.engine(for: model)
         guard let tokenizer = kit.tokenizer else {
             throw SpeechError.loadFailed("its tokenizer did not load")
@@ -59,9 +72,16 @@ final class WhisperKitSpeechSource: SpeechSource {
             tokenizer: tokenizer,
             audioProcessor: kit.audioProcessor,
             decodingOptions: DecodingOptions(),
-            stateChangeCallback: { _, state in
-                let segments = state.confirmedSegments + state.unconfirmedSegments
-                heard(Self.spoken(segments.map(\.text).joined(separator: " ")))
+            silenceThreshold: Self.silenceThreshold,
+            stateChangeCallback: { old, new in
+                // The state changes many times a second; pass on only what moved.
+                if let energy = new.bufferEnergy.last, energy != old.bufferEnergy.last {
+                    level(energy)
+                }
+                let text = Self.text(of: new)
+                if text != Self.text(of: old) {
+                    heard(text)
+                }
             }
         )
         self.transcriber = transcriber
@@ -82,6 +102,10 @@ final class WhisperKitSpeechSource: SpeechSource {
         listening?.cancel()
         listening = nil
         transcriber = nil
+    }
+
+    private static func text(of state: AudioStreamTranscriber.State) -> String {
+        spoken((state.confirmedSegments + state.unconfirmedSegments).map(\.text).joined(separator: " "))
     }
 
     /// Whisper's segment text can carry special tokens such as `<|0.00|>` or `<|endoftext|>`.

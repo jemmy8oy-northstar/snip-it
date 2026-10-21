@@ -13,6 +13,9 @@ final class PrompterSession {
     /// Camera configured and running. Recording before then starts nothing.
     private(set) var isReady = false
     private(set) var status: String?
+    /// The microphone's loudness, 0 to 1, and the last few words heard: the proof it is listening.
+    private(set) var level: Float = 0
+    private(set) var lastHeard = ""
 
     private var follower: ScriptFollower
     private let speech: any SpeechSource
@@ -36,6 +39,7 @@ final class PrompterSession {
             status = "Preparing the speech model…"
             try await speech.start(
                 heard: { [weak self] text in Task { @MainActor in self?.hear(text) } },
+                level: { [weak self] level in Task { @MainActor in self?.level = level } },
                 status: { [weak self] text in Task { @MainActor in self?.status = text.isEmpty ? nil : text } }
             )
         } catch {
@@ -52,7 +56,12 @@ final class PrompterSession {
         recorder.stopRunning()
     }
 
+    func tokens(ofLine line: Int) -> [ScriptFollower.Token] {
+        follower.tokens(ofLine: line)
+    }
+
     func hear(_ text: String) {
+        lastHeard = text.split(separator: " ").suffix(6).joined(separator: " ")
         if follower.hear(text) {
             currentLine = follower.currentLine
         }
@@ -109,6 +118,8 @@ struct PrompterView: View {
                         .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
                         .foregroundStyle(.white)
                         .padding(.bottom, 8)
+                } else if session.isReady {
+                    listening
                 }
 
                 controls
@@ -126,10 +137,9 @@ struct PrompterView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    ForEach(Array(session.lines.enumerated()), id: \.offset) { index, line in
-                        Text(line)
+                    ForEach(session.lines.indices, id: \.self) { index in
+                        highlighted(line: index)
                             .font(.system(size: 30, weight: .semibold))
-                            .foregroundStyle(.white.opacity(opacity(of: index)))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .id(index)
                             .onTapGesture { session.move(to: index) }
@@ -143,8 +153,51 @@ struct PrompterView: View {
         }
     }
 
-    private func opacity(of line: Int) -> Double {
-        line == session.currentLine ? 1 : line < session.currentLine ? 0.3 : 0.6
+    /// The current line lights up word by word as it is heard (BEH-TELE-8); lines already read
+    /// fade, and lines to come wait at middling brightness.
+    private func highlighted(line: Int) -> Text {
+        guard line == session.currentLine else {
+            return Text(session.lines[line])
+                .foregroundStyle(.white.opacity(line < session.currentLine ? 0.3 : 0.6))
+        }
+        return session.tokens(ofLine: line).enumerated().reduce(Text("")) { text, item in
+            let (index, token) = item
+            let word = Text((index == 0 ? "" : " ") + token.text)
+                .foregroundStyle(token.heard ? Color.yellow : Color.white)
+            return text + word
+        }
+    }
+
+    /// Proof the prompter is listening (BEH-TELE-8): the microphone's level against the
+    /// loudness below which the speech engine ignores you, and the last words it heard.
+    private var listening: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.white.opacity(0.2))
+                    Capsule()
+                        .fill(session.level >= WhisperKitSpeechSource.silenceThreshold ? Color.green : Color.white.opacity(0.6))
+                        .frame(width: geo.size.width * CGFloat(min(max(session.level, 0), 1)))
+                    Rectangle()
+                        .fill(.white)
+                        .frame(width: 2)
+                        .offset(x: geo.size.width * CGFloat(WhisperKitSpeechSource.silenceThreshold))
+                }
+            }
+            .frame(height: 6)
+            .animation(.linear(duration: 0.1), value: session.level)
+            .accessibilityLabel("Microphone level")
+
+            Text(session.lastHeard.isEmpty ? "Listening…" : "Heard: \(session.lastHeard)")
+                .font(.caption)
+                .lineLimit(1)
+                .truncationMode(.head)
+                .foregroundStyle(.white.opacity(0.8))
+        }
+        .padding(10)
+        .background(.black.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, 24)
+        .padding(.bottom, 8)
     }
 
     private var controls: some View {
