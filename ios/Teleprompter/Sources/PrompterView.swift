@@ -21,6 +21,8 @@ final class PrompterSession {
     /// upright (BEH-TELE-5). Elsewhere the choice is hidden, not shown disabled.
     private(set) var canChangeShape = false
     private(set) var landscape = false
+    /// Decides where an automatic layout puts the script (BEH-TELE-9).
+    private(set) var frontCamera = true
 
     private var follower: ScriptFollower
     private let speech: any SpeechSource
@@ -42,6 +44,7 @@ final class PrompterSession {
             recorder.startRunning()
             isReady = true
             canChangeShape = recorder.canChangeShape
+            frontCamera = recorder.isFront
             // Set here, not through `status:` below: that hops through a Task, so it could land
             // after, and hide, an error thrown straight back.
             status = "Preparing the speech model…"
@@ -95,6 +98,7 @@ final class PrompterSession {
     func switchCamera() async {
         recorder.switchCamera()
         canChangeShape = recorder.canChangeShape
+        frontCamera = recorder.isFront
         if canChangeShape, landscape {
             _ = await recorder.setLandscape(false)
         }
@@ -142,24 +146,35 @@ final class PrompterSession {
 struct PrompterView: View {
     @State private var session: PrompterSession
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(SettingKey.prompterPosition) private var position = PrompterLayout.standard.position.rawValue
+    @AppStorage(SettingKey.prompterTextSize) private var textSize = PrompterLayout.standard.textSize
+    @AppStorage(SettingKey.prompterWidth) private var width = PrompterLayout.standard.width
+    @State private var arranging = false
 
     init(script: String, model: String, takes: TakeLibrary) {
         _session = State(initialValue: PrompterSession(
             script: script, speech: WhisperKitSpeechSource(model: model), takes: takes))
     }
 
+    private var layout: PrompterLayout {
+        PrompterLayout(storedPosition: position, textSize: textSize, width: width)
+    }
+
     var body: some View {
+        let placement = layout.placement(frontCamera: session.frontCamera)
         ZStack {
             CameraPreview(recorder: session.recorder, landscape: session.landscape)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // The script sits at the top, nearest the front camera, so the eye line stays close to the lens.
+                // Top is nearest the lens; centre reads like looking at yourself on a selfie
+                // (BEH-TELE-9). A narrower column keeps the eyes still on a close-up.
+                if placement != .top { Spacer() }
                 script
                     .frame(maxHeight: 320)
+                    .containerRelativeFrame(.horizontal) { length, _ in length * CGFloat(layout.width) }
                     .background(.black.opacity(0.55))
-
-                Spacer()
+                if placement != .bottom { Spacer() }
 
                 if let status = session.status {
                     Text(status)
@@ -175,6 +190,16 @@ struct PrompterView: View {
                 controls
             }
         }
+        // A short sheet, so the prompter shows each change live behind it.
+        .sheet(isPresented: $arranging) {
+            NavigationStack {
+                Form { PrompterLayoutSettings() }
+                    .navigationTitle("Script on screen")
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .presentationDetents([.height(320)])
+            .presentationBackgroundInteraction(.enabled(upThrough: .height(320)))
+        }
         .task { await session.start() }
         .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
         .onDisappear {
@@ -189,7 +214,7 @@ struct PrompterView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     ForEach(session.lines.indices, id: \.self) { index in
                         highlighted(line: index)
-                            .font(.system(size: 30, weight: .semibold))
+                            .font(.system(size: CGFloat(layout.textSize), weight: .semibold))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .id(index)
                             .onTapGesture { session.move(to: index) }
@@ -252,15 +277,28 @@ struct PrompterView: View {
 
     private var controls: some View {
         HStack {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.title2)
-                    .frame(width: 56, height: 56)
-                    .background(.black.opacity(0.5), in: Circle())
+            // Stacked like the camera buttons on the right, so the record button stays centred.
+            VStack(spacing: 12) {
+                Button {
+                    arranging = true
+                } label: {
+                    Image(systemName: "textformat.size")
+                        .font(.title2)
+                        .frame(width: 56, height: 56)
+                        .background(.black.opacity(0.5), in: Circle())
+                }
+                .accessibilityLabel("Script position, size and width")
+
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.title2)
+                        .frame(width: 56, height: 56)
+                        .background(.black.opacity(0.5), in: Circle())
+                }
+                .disabled(session.isRecording)
             }
-            .disabled(session.isRecording)
 
             Spacer()
 

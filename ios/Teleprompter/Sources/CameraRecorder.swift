@@ -128,6 +128,11 @@ final class CameraRecorder: NSObject, AVCaptureFileOutputRecordingDelegate, @unc
 
     // MARK: Camera controls (BEH-TELE-4)
 
+    /// Whether the front camera is the one in use. Read after `configure` and `switchCamera`.
+    var isFront: Bool {
+        queue.sync { video?.device.position != .back }
+    }
+
     /// Front to back or back to front. Not while recording: the take would change camera mid-file.
     func switchCamera() {
         queue.async {
