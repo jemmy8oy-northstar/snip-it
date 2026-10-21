@@ -59,6 +59,33 @@ public struct ScriptFollower {
 
     public var isFinished: Bool { cursor >= words.count }
 
+    /// A line as the screen shows it, split on spaces, each piece marked heard or not, so the
+    /// prompter can highlight what it has followed. Every line before the cursor's is heard,
+    /// every line after it is not. A piece is heard once all of its words are behind the
+    /// cursor, so "well-known" lights up on "known". A punctuation-only piece ("—") goes with
+    /// the word before it, or, at the start of a line, with the word after it.
+    public func tokens(ofLine line: Int) -> [Token] {
+        guard lines.indices.contains(line), let first = lineOfWord.firstIndex(of: line) else {
+            return []
+        }
+        var word = first
+        return lines[line].split(separator: " ", omittingEmptySubsequences: true).map { piece in
+            word += Words.of(String(piece)).count
+            let heard = word == first ? first < cursor : word <= cursor
+            return Token(text: String(piece), heard: heard)
+        }
+    }
+
+    public struct Token: Equatable {
+        public let text: String
+        public let heard: Bool
+
+        public init(text: String, heard: Bool) {
+            self.text = text
+            self.heard = heard
+        }
+    }
+
     /// Takes what the speech engine heard. Returns whether the cursor moved.
     @discardableResult
     public mutating func hear(_ text: String) -> Bool {
