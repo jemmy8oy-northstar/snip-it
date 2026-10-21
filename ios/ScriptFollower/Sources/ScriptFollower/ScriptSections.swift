@@ -13,10 +13,14 @@ public struct ScriptSection: Equatable, Sendable {
         self.body = body
     }
 
-    /// Lines the prompter will show: the non-blank ones.
-    public var lineCount: Int {
-        body.split(whereSeparator: \.isNewline).filter { !$0.allSatisfy(\.isWhitespace) }.count
+    /// Lines the prompter will show: the non-blank ones, without the spaces around them.
+    public var lines: [String] {
+        body.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
     }
+
+    public var lineCount: Int { lines.count }
 }
 
 /// Markdown's markers, borrowed: `# Name` starts a named section and `---` an unnamed one. The

@@ -1,5 +1,6 @@
 import AVKit
 import Photos
+import Productions
 import SnipItClient
 import SwiftUI
 
@@ -8,6 +9,7 @@ struct Take: Identifiable, Hashable {
     let date: Date
     var id: URL { url }
     var isCut: Bool { url.deletingPathExtension().lastPathComponent.hasSuffix(TakeLibrary.cutSuffix) }
+    var coverage: TakeCoverage? { TakeCoverage.read(for: url, cutSuffix: TakeLibrary.cutSuffix) }
 }
 
 /// A production's takes are the files in its Takes directory; the directory is the whole database.
@@ -31,9 +33,23 @@ struct TakeLibrary {
     func all() -> [Take] {
         let files = (try? FileManager.default.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: [.creationDateKey])) ?? []
+        // Videos only: a take's coverage file sits beside it.
         return files
+            .filter { ["mov", "mp4"].contains($0.pathExtension.lowercased()) }
             .map { Take(url: $0, date: (try? $0.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast) }
             .sorted { $0.date > $1.date }
+    }
+
+    /// Every take's coverage, once per original: a cut shares its original's.
+    func coverage() -> [TakeCoverage] {
+        all().filter { !$0.isCut }.compactMap(\.coverage)
+    }
+
+    func delete(_ take: Take) {
+        try? FileManager.default.removeItem(at: take.url)
+        if !take.isCut {
+            try? FileManager.default.removeItem(at: TakeCoverage.url(for: take.url, cutSuffix: Self.cutSuffix))
+        }
     }
 }
 
@@ -47,6 +63,7 @@ struct TakesView: View {
     @State private var working: URL?
     @State private var message: String?
     @State private var playing: Take?
+    @State private var deleting: Take?
 
     var body: some View {
         List {
@@ -61,6 +78,15 @@ struct TakesView: View {
         .onAppear { takes = library.all() }
         .fullScreenCover(item: $playing) { take in
             TakePlayer(url: take.url)
+        }
+        // Every delete asks first (snip-it.notes.md#2026-10-21-0005).
+        .confirmationDialog("Delete this take?",
+                            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+                            titleVisibility: .visible, presenting: deleting) { take in
+            Button("Delete take", role: .destructive) {
+                library.delete(take)
+                takes = library.all()
+            }
         }
         .alert("Takes", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             Button("OK") { message = nil }
@@ -82,6 +108,12 @@ struct TakesView: View {
                         Text(take.isCut ? "Pauses cut" : "Original")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                        if let lines = take.coverage?.lines, let first = lines.first {
+                            Text("\(lines.count == 1 ? "1 line" : "\(lines.count) lines"), from “\(first)”")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                 }
             }
@@ -108,10 +140,9 @@ struct TakesView: View {
             }
         }
         .swipeActions {
-            Button("Delete", systemImage: "trash", role: .destructive) {
-                try? FileManager.default.removeItem(at: take.url)
-                takes = library.all()
-            }
+            // Not `role: .destructive`: that removes the row before the confirmation is answered.
+            Button("Delete", systemImage: "trash") { deleting = take }
+                .tint(.red)
         }
     }
 
