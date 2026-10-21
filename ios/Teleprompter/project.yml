@@ -32,7 +32,7 @@ targets:
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: Teleprompter
+        CFBundleDisplayName: YoursStudio
         CFBundleIconName: AppIcon
         # Reference the build settings rather than literals: without these two,
         # xcodegen writes a hardcoded CFBundleVersion of 1, and the CI override
