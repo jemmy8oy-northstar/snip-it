@@ -1,29 +1,68 @@
 import Productions
+import ScriptFollower
 import SwiftUI
 
-/// One production's script. It saves as you type, into that production's `script.txt`.
+/// A section being edited. The id is the screen's, so a fold or a drag follows the section
+/// rather than its position; it is never saved.
+struct EditableSection: Identifiable, Equatable {
+    let id = UUID()
+    var section: ScriptSection
+    var folded = false
+}
+
+/// One production's script, as sections that fold (BEH-SCRIPT-2). It saves on every change,
+/// into that production's `script.txt`, as plain text with `#` and `---` markers.
 struct ScriptView: View {
     let production: Production
     let store: ProductionStore
     @AppStorage(SettingKey.whisperModel) private var model = "base.en"
-    @State private var script = ""
+    @State private var sections: [EditableSection] = []
+    @State private var loaded = false
     @State private var prompting = false
+    @State private var managing = false
     @State private var error: String?
 
+    private var script: String { ScriptSections.join(sections.map(\.section)) }
+
     var body: some View {
-        TextEditor(text: $script)
-            .font(.title3)
-            .padding(.horizontal)
-            .overlay(alignment: .topLeading) {
-                if script.isEmpty {
-                    Text("Paste your script. Each line is one prompter line.")
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-                        .allowsHitTesting(false)
+        List {
+            ForEach($sections) { $item in
+                DisclosureGroup(isExpanded: Binding(get: { !item.folded }, set: { item.folded = !$0 })) {
+                    TextEditor(text: $item.section.body)
+                        .font(.title3)
+                        .frame(minHeight: 140)
+                        .overlay(alignment: .topLeading) {
+                            if item.section.body.isEmpty {
+                                Text("Paste or write this section. Each line is one prompter line.")
+                                    .foregroundStyle(.secondary)
+                                    .padding(.top, 8)
+                                    .padding(.leading, 5)
+                                    .allowsHitTesting(false)
+                            }
+                        }
+                } label: {
+                    SectionLabel(section: item.section, folded: item.folded)
                 }
             }
-            .safeAreaInset(edge: .bottom) {
+            Button("Add section", systemImage: "plus") {
+                sections.append(EditableSection(section: ScriptSection(name: "Section \(sections.count + 1)")))
+            }
+            Text("Start a line with # to name a section, or write --- for a break. The prompter reads straight through them.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .secondaryAction) {
+                Button("Fold all", systemImage: "rectangle.compress.vertical") { setFolded(true) }
+                Button("Unfold all", systemImage: "rectangle.expand.vertical") { setFolded(false) }
+                Button("Manage sections", systemImage: "list.bullet.indent") { managing = true }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 4) {
+                if let error {
+                    Text(error).font(.caption).foregroundStyle(.red)
+                }
                 Button {
                     prompting = true
                 } label: {
@@ -32,25 +71,138 @@ struct ScriptView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .padding()
-                .disabled(script.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(ScriptFollower(script: script).lines.isEmpty)
             }
-            .onAppear { script = store.script(of: production) }
-            .onChange(of: script) { _, text in
-                do {
-                    try store.setScript(text, of: production)
-                    error = nil
-                } catch {
-                    self.error = "The script could not be saved: \(error.localizedDescription)"
+            .padding()
+            .background(.bar)
+        }
+        .onAppear(perform: load)
+        .onChange(of: sections) { _, _ in save() }
+        .sheet(isPresented: $managing) {
+            ManageSectionsView(sections: $sections)
+        }
+        .fullScreenCover(isPresented: $prompting) {
+            PrompterView(script: script, model: model, takes: TakeLibrary(directory: store.takes(of: production.id)))
+        }
+    }
+
+    /// Parsed once, on opening: re-parsing as you type would split a section the moment a line
+    /// began with #, and move the cursor out from under you. A marker typed into a section takes
+    /// effect the next time the script is opened.
+    private func load() {
+        guard !loaded else { return }
+        loaded = true
+        let parsed = ScriptSections.parse(store.script(of: production))
+        sections = (parsed.isEmpty ? [ScriptSection()] : parsed).map { EditableSection(section: $0) }
+    }
+
+    private func save() {
+        guard loaded else { return }
+        do {
+            try store.setScript(script, of: production)
+            error = nil
+        } catch {
+            self.error = "The script could not be saved: \(error.localizedDescription)"
+        }
+    }
+
+    private func setFolded(_ folded: Bool) {
+        for index in sections.indices {
+            sections[index].folded = folded
+        }
+    }
+}
+
+private struct SectionLabel: View {
+    let section: ScriptSection
+    let folded: Bool
+
+    var body: some View {
+        HStack {
+            Text(section.name ?? "Untitled section")
+                .font(.headline)
+                .foregroundStyle(section.name == nil ? .secondary : .primary)
+            Spacer()
+            if folded {
+                Text(section.lineCount == 1 ? "1 line" : "\(section.lineCount) lines")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+/// Rename, reorder, clear and delete sections (BEH-SCRIPT-3). Every delete and clear asks first.
+struct ManageSectionsView: View {
+    @Binding var sections: [EditableSection]
+    @Environment(\.dismiss) private var dismiss
+    @State private var clearing: EditableSection.ID?
+    @State private var deleting: EditableSection.ID?
+    @State private var deletingAll = false
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach($sections) { $item in
+                        HStack {
+                            TextField("Untitled section", text: Binding(
+                                get: { item.section.name ?? "" },
+                                set: { item.section.name = $0.isEmpty ? nil : $0 }))
+                            Text(item.section.lineCount == 1 ? "1 line" : "\(item.section.lineCount) lines")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            // A menu rather than swipe actions: a list in edit mode, for dragging, has no swipes.
+                            Menu {
+                                Button("Clear lines", systemImage: "eraser") { clearing = item.id }
+                                Button("Delete section", systemImage: "trash", role: .destructive) { deleting = item.id }
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                            }
+                            .accessibilityLabel("Section actions")
+                        }
+                    }
+                    .onMove { sections.move(fromOffsets: $0, toOffset: $1) }
+                } footer: {
+                    Text("Drag a section by its handle to reorder it.")
+                }
+
+                Section {
+                    Button("Delete all sections", role: .destructive) { deletingAll = true }
+                        .disabled(sections.isEmpty)
                 }
             }
-            .overlay(alignment: .bottom) {
-                if let error {
-                    Text(error).font(.caption).foregroundStyle(.red).padding(.bottom, 80)
+            .environment(\.editMode, .constant(.active))
+            .navigationTitle("Sections")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                Button("Done") { dismiss() }
+            }
+            // `presenting:` hands the id to the button, so it cannot read one already cleared by the dismissal.
+            .confirmationDialog("Clear this section's lines? Its name stays.",
+                                isPresented: isSet($clearing), titleVisibility: .visible, presenting: clearing) { id in
+                Button("Clear lines", role: .destructive) {
+                    if let index = sections.firstIndex(where: { $0.id == id }) {
+                        sections[index].section.body = ""
+                    }
                 }
             }
-            .fullScreenCover(isPresented: $prompting) {
-                PrompterView(script: script, model: model, takes: TakeLibrary(directory: store.takes(of: production.id)))
+            .confirmationDialog("Delete this section and its lines?",
+                                isPresented: isSet($deleting), titleVisibility: .visible, presenting: deleting) { id in
+                Button("Delete section", role: .destructive) {
+                    sections.removeAll { $0.id == id }
+                }
             }
+            .confirmationDialog("Delete every section? The whole script is removed.",
+                                isPresented: $deletingAll, titleVisibility: .visible) {
+                Button("Delete all sections", role: .destructive) {
+                    sections = [EditableSection(section: ScriptSection())]
+                }
+            }
+        }
+    }
+
+    private func isSet(_ id: Binding<EditableSection.ID?>) -> Binding<Bool> {
+        Binding(get: { id.wrappedValue != nil }, set: { if !$0 { id.wrappedValue = nil } })
     }
 }
