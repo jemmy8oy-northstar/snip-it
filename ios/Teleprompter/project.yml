@@ -27,6 +27,8 @@ targets:
         product: ScriptFollower
       - package: ScriptFollower
         product: SnipItClient
+      - package: ScriptFollower
+        product: Productions
     info:
       path: Sources/Info.plist
       properties:

@@ -10,25 +10,25 @@ struct Take: Identifiable, Hashable {
     var isCut: Bool { url.deletingPathExtension().lastPathComponent.hasSuffix(TakeLibrary.cutSuffix) }
 }
 
-/// Takes are files in Documents/Takes; the directory is the whole database.
-enum TakeLibrary {
+/// A production's takes are the files in its Takes directory; the directory is the whole database.
+struct TakeLibrary {
     static let cutSuffix = "-cut"
 
-    static var directory: URL {
-        let takes = URL.documentsDirectory.appending(path: "Takes", directoryHint: .isDirectory)
-        try? FileManager.default.createDirectory(at: takes, withIntermediateDirectories: true)
-        return takes
+    /// Where takes lived before productions (BEH-PROD-1): `ProductionStore.adopt` moves them out.
+    static let legacyDirectory = URL.documentsDirectory.appending(path: "Takes", directoryHint: .isDirectory)
+
+    let directory: URL
+
+    func newTakeURL() -> URL {
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appending(path: "take-\(Int(Date.now.timeIntervalSince1970)).mov")
     }
 
-    static func newTakeURL() -> URL {
-        directory.appending(path: "take-\(Int(Date.now.timeIntervalSince1970)).mov")
+    func cutURL(for take: URL) -> URL {
+        directory.appending(path: take.deletingPathExtension().lastPathComponent + Self.cutSuffix + ".mp4")
     }
 
-    static func cutURL(for take: URL) -> URL {
-        directory.appending(path: take.deletingPathExtension().lastPathComponent + cutSuffix + ".mp4")
-    }
-
-    static func all() -> [Take] {
+    func all() -> [Take] {
         let files = (try? FileManager.default.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: [.creationDateKey])) ?? []
         return files
@@ -37,7 +37,9 @@ enum TakeLibrary {
     }
 }
 
+/// One production's takes. It sits inside that production's screen, so it has no navigation of its own.
 struct TakesView: View {
+    let library: TakeLibrary
     @AppStorage(SettingKey.snipItURL) private var snipItURL = "https://balenthiran.co.uk/snipit/"
     @AppStorage(SettingKey.snipItUser) private var snipItUser = ""
     @AppStorage(SettingKey.maxPause) private var maxPause = 0.6
@@ -47,26 +49,23 @@ struct TakesView: View {
     @State private var playing: Take?
 
     var body: some View {
-        NavigationStack {
-            List {
-                if takes.isEmpty {
-                    Text("Takes you record appear here.").foregroundStyle(.secondary)
-                }
-                ForEach(takes) { take in
-                    row(take)
-                }
+        List {
+            if takes.isEmpty {
+                Text("Takes you record for this production appear here.").foregroundStyle(.secondary)
             }
-            .navigationTitle("Takes")
-            .refreshable { takes = TakeLibrary.all() }
-            .onAppear { takes = TakeLibrary.all() }
-            .fullScreenCover(item: $playing) { take in
-                TakePlayer(url: take.url)
+            ForEach(takes) { take in
+                row(take)
             }
-            .alert("Takes", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
-                Button("OK") { message = nil }
-            } message: {
-                Text(message ?? "")
-            }
+        }
+        .refreshable { takes = library.all() }
+        .onAppear { takes = library.all() }
+        .fullScreenCover(item: $playing) { take in
+            TakePlayer(url: take.url)
+        }
+        .alert("Takes", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+            Button("OK") { message = nil }
+        } message: {
+            Text(message ?? "")
         }
     }
 
@@ -111,7 +110,7 @@ struct TakesView: View {
         .swipeActions {
             Button("Delete", systemImage: "trash", role: .destructive) {
                 try? FileManager.default.removeItem(at: take.url)
-                takes = TakeLibrary.all()
+                takes = library.all()
             }
         }
     }
@@ -129,10 +128,10 @@ struct TakesView: View {
             password: Keychain.password)
         do {
             let cut = try await client.cutPauses(of: take.url, maxPauseSeconds: maxPause)
-            let destination = TakeLibrary.cutURL(for: take.url)
+            let destination = library.cutURL(for: take.url)
             try? FileManager.default.removeItem(at: destination)
             try FileManager.default.moveItem(at: cut, to: destination)
-            takes = TakeLibrary.all()
+            takes = library.all()
         } catch let error as SnipItError {
             message = Self.describe(error)
         } catch {

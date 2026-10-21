@@ -10,11 +10,14 @@ let package = Package(
     products: [
         .library(name: "ScriptFollower", targets: ["ScriptFollower"]),
         .library(name: "SnipItClient", targets: ["SnipItClient"]),
+        .library(name: "Productions", targets: ["Productions"]),
     ],
     targets: [
         .target(name: "ScriptFollower"),
         .target(name: "SnipItClient"),
+        .target(name: "Productions"),
         .testTarget(name: "ScriptFollowerTests", dependencies: ["ScriptFollower"]),
         .testTarget(name: "SnipItClientTests", dependencies: ["SnipItClient"]),
+        .testTarget(name: "ProductionsTests", dependencies: ["Productions"]),
     ]
 )

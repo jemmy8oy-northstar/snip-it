@@ -19,14 +19,16 @@ final class PrompterSession {
 
     private var follower: ScriptFollower
     private let speech: any SpeechSource
+    private let takes: TakeLibrary
 
-    init(script: String, speech: any SpeechSource) {
+    init(script: String, speech: any SpeechSource, takes: TakeLibrary) {
         // Read the lines off a local: @Observable turns `follower` into an accessor, which
         // cannot be read before every stored property is set.
         let follower = ScriptFollower(script: script)
         self.follower = follower
         lines = follower.lines
         self.speech = speech
+        self.takes = takes
     }
 
     func start() async {
@@ -84,7 +86,7 @@ final class PrompterSession {
             isRecording = false
         } else {
             status = nil
-            recorder.startRecording(to: TakeLibrary.newTakeURL())
+            recorder.startRecording(to: takes.newTakeURL())
             isRecording = true
         }
     }
@@ -94,8 +96,9 @@ struct PrompterView: View {
     @State private var session: PrompterSession
     @Environment(\.dismiss) private var dismiss
 
-    init(script: String, model: String) {
-        _session = State(initialValue: PrompterSession(script: script, speech: WhisperKitSpeechSource(model: model)))
+    init(script: String, model: String, takes: TakeLibrary) {
+        _session = State(initialValue: PrompterSession(
+            script: script, speech: WhisperKitSpeechSource(model: model), takes: takes))
     }
 
     var body: some View {
