@@ -7,6 +7,7 @@ struct SettingsView: View {
     @AppStorage(SettingKey.snipItUser) private var snipItUser = ""
     @AppStorage(SettingKey.maxPause) private var maxPause = 0.6
     @AppStorage(SettingKey.whisperModel) private var whisperModel = "base.en"
+    @AppStorage(SettingKey.studio) private var studio = false
     @State private var password = Keychain.password ?? ""
     private let models = SpeechModels.shared
 
@@ -14,25 +15,15 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Address", text: $snipItURL)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("Username", text: $snipItUser)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    SecureField("Password", text: $password)
-                        .onChange(of: password) { _, value in Keychain.password = value }
-                } header: {
-                    Text("snip-it")
+                    Toggle("Studio features", isOn: $studio)
                 } footer: {
-                    Text("Where takes go to have their pauses cut.")
+                    Text(studio
+                         ? "Studio adds the features that send takes to a server, such as cutting pauses on snip-it. Turn it off any time; nothing you made is deleted."
+                         : "Everything works on this iPhone, with no account and nothing sent anywhere. Studio adds features that send takes to a server.")
                 }
 
-                Section {
-                    Stepper(value: $maxPause, in: 0.2...3, step: 0.1) {
-                        Text("Cut pauses over \(maxPause.formatted(.number.precision(.fractionLength(1))))s")
-                    }
+                if studio {
+                    studioSections
                 }
 
                 PrompterLayoutSettings()
@@ -49,6 +40,31 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+        }
+    }
+
+    /// What only Studio shows (BEH-EDITION-1): where takes go to have their pauses cut.
+    @ViewBuilder private var studioSections: some View {
+        Section {
+            TextField("Address", text: $snipItURL)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            TextField("Username", text: $snipItUser)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            SecureField("Password", text: $password)
+                .onChange(of: password) { _, value in Keychain.password = value }
+        } header: {
+            Text("snip-it")
+        } footer: {
+            Text("Where takes go to have their pauses cut.")
+        }
+
+        Section {
+            Stepper(value: $maxPause, in: 0.2...3, step: 0.1) {
+                Text("Cut pauses over \(maxPause.formatted(.number.precision(.fractionLength(1))))s")
+            }
         }
     }
 }

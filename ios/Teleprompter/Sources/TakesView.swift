@@ -59,6 +59,7 @@ struct TakesView: View {
     @AppStorage(SettingKey.snipItURL) private var snipItURL = "https://balenthiran.co.uk/snipit/"
     @AppStorage(SettingKey.snipItUser) private var snipItUser = ""
     @AppStorage(SettingKey.maxPause) private var maxPause = 0.6
+    @AppStorage(SettingKey.studio) private var studio = false
     @State private var takes: [Take] = []
     @State private var working: URL?
     @State private var message: String?
@@ -124,7 +125,8 @@ struct TakesView: View {
                 ProgressView()
             } else {
                 Menu {
-                    if !take.isCut {
+                    // Cutting sends the take to snip-it, so only Studio offers it (BEH-EDITION-2).
+                    if studio && !take.isCut {
                         Button("Cut pauses over \(maxPause.formatted(.number.precision(.fractionLength(1))))s",
                                systemImage: "scissors") {
                             Task { await cutPauses(take) }
@@ -147,6 +149,7 @@ struct TakesView: View {
     }
 
     private func cutPauses(_ take: Take) async {
+        guard studio else { return }
         guard let base = URL(string: snipItURL) else {
             message = "The snip-it address in Settings is not a URL."
             return

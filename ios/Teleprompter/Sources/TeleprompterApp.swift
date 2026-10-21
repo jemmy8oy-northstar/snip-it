@@ -1,4 +1,5 @@
 import Productions
+import ScriptFollower
 import SwiftUI
 
 @main
@@ -7,6 +8,7 @@ struct TeleprompterApp: App {
 
     init() {
         adoptTheOldScriptAndTakes()
+        startTheStudioSwitch()
     }
 
     var body: some Scene {
@@ -29,6 +31,15 @@ struct TeleprompterApp: App {
             defaults.removeObject(forKey: SettingKey.legacyScript)
         }
     }
+
+    /// The Studio switch is written once, the first time a build with it runs (BEH-EDITION-1).
+    private func startTheStudioSwitch() {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: SettingKey.studio) == nil else { return }
+        defaults.set(Studio.initialValue(snipItUser: defaults.string(forKey: SettingKey.snipItUser),
+                                         hasPassword: Keychain.password != nil),
+                     forKey: SettingKey.studio)
+    }
 }
 
 /// Settings live in UserDefaults (and the password in the Keychain), read wherever they are needed.
@@ -44,4 +55,6 @@ enum SettingKey {
     static let prompterPosition = "prompterPosition"
     static let prompterTextSize = "prompterTextSize"
     static let prompterWidth = "prompterWidth"
+    /// Studio features on or off (BEH-EDITION-1); off is the general release, fully on the phone.
+    static let studio = "studioEnabled"
 }
