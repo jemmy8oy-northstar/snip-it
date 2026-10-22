@@ -98,7 +98,7 @@ struct ProductionView: View {
 
             switch pane {
             case .script: ScriptView(production: production, store: store)
-            case .takes: TakesView(library: TakeLibrary(directory: store.takes(of: production.id)))
+            case .takes: TakesView(library: TakeLibrary(directory: store.takes(of: production.id)), productionID: production.id)
             }
         }
         .navigationTitle(production.name)

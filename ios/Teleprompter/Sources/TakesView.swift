@@ -11,6 +11,8 @@ struct Take: Identifiable, Hashable {
     var isCut: Bool { url.deletingPathExtension().lastPathComponent.hasSuffix(TakeLibrary.cutSuffix) }
     var coverage: TakeCoverage? { TakeCoverage.read(for: url, cutSuffix: TakeLibrary.cutSuffix) }
     var transcript: TakeTranscript? { TakeTranscript.read(for: url, cutSuffix: TakeLibrary.cutSuffix) }
+    /// Whether the creator has saved this take to snip-it's server (BEH-EDITION-3).
+    var isSavedToSnipIt: Bool { FileManager.default.fileExists(atPath: TakeLibrary.savedMarker(for: url).path) }
 }
 
 /// A production's takes are the files in its Takes directory; the directory is the whole database.
@@ -31,6 +33,12 @@ struct TakeLibrary {
         directory.appending(path: take.deletingPathExtension().lastPathComponent + Self.cutSuffix + ".mp4")
     }
 
+    /// A small file beside the take, written when snip-it confirms it has the take. It is only a
+    /// note of what the creator did: nothing uploads because it exists or doesn't.
+    static func savedMarker(for take: URL) -> URL {
+        take.deletingPathExtension().appendingPathExtension("saved")
+    }
+
     func all() -> [Take] {
         let files = (try? FileManager.default.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: [.creationDateKey])) ?? []
@@ -48,6 +56,7 @@ struct TakeLibrary {
 
     func delete(_ take: Take) {
         try? FileManager.default.removeItem(at: take.url)
+        try? FileManager.default.removeItem(at: Self.savedMarker(for: take.url))
         if !take.isCut {
             try? FileManager.default.removeItem(at: TakeCoverage.url(for: take.url, cutSuffix: Self.cutSuffix))
             try? FileManager.default.removeItem(at: TakeTranscript.url(for: take.url, cutSuffix: Self.cutSuffix))
@@ -58,6 +67,8 @@ struct TakeLibrary {
 /// One production's takes. It sits inside that production's screen, so it has no navigation of its own.
 struct TakesView: View {
     let library: TakeLibrary
+    /// The production these takes belong to: a saved take is filed under it on snip-it's server.
+    let productionID: String
     @AppStorage(SettingKey.snipItURL) private var snipItURL = "https://balenthiran.co.uk/snipit/"
     @AppStorage(SettingKey.snipItUser) private var snipItUser = ""
     @AppStorage(SettingKey.maxPause) private var maxPause = 0.6
@@ -111,6 +122,11 @@ struct TakesView: View {
                         Text(take.isCut ? "Pauses cut" : "Original")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                        if studio && take.isSavedToSnipIt {
+                            Label("Saved to snip-it", systemImage: "checkmark.icloud")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                         if let lines = take.coverage?.lines, let first = lines.first {
                             Text("\(lines.count == 1 ? "1 line" : "\(lines.count) lines"), from “\(first)”")
                                 .font(.caption)
@@ -132,6 +148,14 @@ struct TakesView: View {
                         Button("Cut pauses over \(maxPause.formatted(.number.precision(.fractionLength(1))))s",
                                systemImage: "scissors") {
                             Task { await cutPauses(take) }
+                        }
+                    }
+                    // A take leaves the phone only when this is pressed (BEH-EDITION-3): never on
+                    // recording, never in the background.
+                    if studio {
+                        Button(take.isSavedToSnipIt ? "Save to snip-it again" : "Save to snip-it",
+                               systemImage: "icloud.and.arrow.up") {
+                            Task { await saveToSnipIt(take) }
                         }
                     }
                     Button("Save to Photos", systemImage: "square.and.arrow.down") {
@@ -168,6 +192,34 @@ struct TakesView: View {
             try? FileManager.default.removeItem(at: destination)
             try FileManager.default.moveItem(at: cut, to: destination)
             takes = library.all()
+        } catch let error as SnipItError {
+            message = Self.describe(error)
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    private func saveToSnipIt(_ take: Take) async {
+        guard studio else { return }
+        guard let base = URL(string: snipItURL) else {
+            message = "The snip-it address in Settings is not a URL."
+            return
+        }
+        working = take.url
+        defer { working = nil }
+        let client = SnipItClient(
+            baseURL: base,
+            username: snipItUser.isEmpty ? nil : snipItUser,
+            password: Keychain.password)
+        do {
+            _ = try await client.saveTake(take.url, productionID: productionID)
+            FileManager.default.createFile(atPath: TakeLibrary.savedMarker(for: take.url).path, contents: nil)
+            takes = library.all()
+            message = "Saved to snip-it."
+        } catch SnipItError.rejected(404, _) {
+            message = "This snip-it server isn't keeping takes."
+        } catch SnipItError.rejected(507, _) {
+            message = "snip-it's take storage is full."
         } catch let error as SnipItError {
             message = Self.describe(error)
         } catch {
