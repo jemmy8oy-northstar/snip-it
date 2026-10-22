@@ -7,6 +7,10 @@ metadata:
     app: {{ .name }}
 spec:
   replicas: {{ .replicas }}
+  {{- if and $.Values.takes.persistence.enabled (eq .name "backend") }}
+  strategy:
+    type: Recreate
+  {{- end }}
   selector:
     matchLabels:
       app: {{ .name }}
@@ -25,8 +29,17 @@ spec:
             - containerPort: {{ .containerPort }}
           resources:
             {{- toYaml .resources | nindent 12 }}
-          {{- if .env }}
+          {{- if and $.Values.takes.persistence.enabled (eq .name "backend") }}
+          volumeMounts:
+            - name: takes
+              mountPath: {{ $.Values.takes.persistence.mountPath }}
+          {{- end }}
+          {{- if or .env (and $.Values.takes.persistence.enabled (eq .name "backend")) }}
           env:
+            {{- if and $.Values.takes.persistence.enabled (eq .name "backend") }}
+            - name: Takes__RootPath
+              value: {{ $.Values.takes.persistence.mountPath | quote }}
+            {{- end }}
             {{- range .env }}
             - name: {{ .name }}
               {{- if .value }}
@@ -39,6 +52,12 @@ spec:
               {{- end }}
             {{- end }}
           {{- end }}
+      {{- if and $.Values.takes.persistence.enabled (eq .name "backend") }}
+      volumes:
+        - name: takes
+          persistentVolumeClaim:
+            claimName: {{ include "app.fullname" $ }}-takes
+      {{- end }}
       {{- with .nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

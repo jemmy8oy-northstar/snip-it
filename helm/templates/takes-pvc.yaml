@@ -1,0 +1,19 @@
+{{- /*
+  The takes volume (BEH-EDITION-3): where takes the creator chose to save are kept. Optional and
+  off by default — this reverses #22, which removed snip-it's only PVC. See values.yaml `takes`.
+*/ -}}
+{{- if .Values.takes.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "app.fullname" . }}-takes
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- with .Values.takes.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.takes.persistence.size }}
+{{- end }}
