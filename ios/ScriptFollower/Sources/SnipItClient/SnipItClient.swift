@@ -97,6 +97,24 @@ public struct SnipItClient: Sendable {
         return file
     }
 
+    // MARK: - Saved takes (BEH-EDITION-3)
+
+    /// Sends a take to snip-it's server to be kept beside its production. Only ever called because
+    /// the creator pressed Save on that take; nothing else in the client uploads for keeping.
+    /// Saving the same take again replaces it.
+    public func saveTake(_ video: URL, productionID: String) async throws -> SavedTake {
+        try await upload(to: Self.takesPath(productionID), fields: [], video: video)
+    }
+
+    /// The takes saved for a production, so the phone can tell which ones are already there.
+    public func savedTakes(productionID: String) async throws -> [SavedTake] {
+        try await get(Self.takesPath(productionID))
+    }
+
+    private static func takesPath(_ productionID: String) -> String {
+        "api/productions/\(productionID.lowercased())/takes"
+    }
+
     // MARK: - Plumbing
 
     /// Polls until the job finishes. A job that is already finished is not fetched again.
@@ -123,7 +141,7 @@ public struct SnipItClient: Sendable {
         return try Self.decode(response)
     }
 
-    private func upload(to path: String, fields: [(name: String, value: String)], video: URL) async throws -> Job {
+    private func upload<T: Decodable>(to path: String, fields: [(name: String, value: String)], video: URL) async throws -> T {
         let multipart = Multipart()
         let body = try multipart.write(fields: fields, fileField: "file", file: video)
         defer { try? FileManager.default.removeItem(at: body) }

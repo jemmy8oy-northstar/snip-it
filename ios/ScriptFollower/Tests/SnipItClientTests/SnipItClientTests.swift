@@ -168,6 +168,45 @@ final class SnipItClientTests: XCTestCase {
         XCTAssertTrue(body.contains("name=\"file\"; filename=\"\(video.lastPathComponent)\""))
     }
 
+    // BEH-EDITION-3: saving a take is a POST of the file under its production, by the file's own name.
+    func testSavingATakePostsItUnderItsProductionAndReadsTheAnswer() async throws {
+        let production = "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+        let name = video.lastPathComponent
+        let transport = FakeTransport([(200, "{\"name\":\"\(name)\",\"bytes\":18,\"savedAt\":\"2026-10-22T10:00:00.123Z\"}")])
+
+        let saved = try await client(transport).saveTake(video, productionID: production)
+
+        XCTAssertEqual(saved, SavedTake(name: name, bytes: 18, savedAt: "2026-10-22T10:00:00.123Z"))
+        let sent = await transport.sent
+        XCTAssertEqual(sent.count, 1)
+        XCTAssertEqual(sent[0].request.method, "POST")
+        XCTAssertEqual(sent[0].request.url.absoluteString,
+                       "https://balenthiran.co.uk/snipit/api/productions/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/takes")
+        XCTAssertTrue(String(decoding: sent[0].body, as: UTF8.self).contains("name=\"file\"; filename=\"\(name)\""))
+    }
+
+    func testListingSavedTakesReadsThePerProductionList() async throws {
+        let transport = FakeTransport([(200, "[{\"name\":\"take-1.mov\",\"bytes\":5,\"savedAt\":\"2026-10-22T10:00:00Z\"}]")])
+
+        let saved = try await client(transport).savedTakes(productionID: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")
+
+        XCTAssertEqual(saved.map(\.name), ["take-1.mov"])
+        let sent = await transport.sent
+        XCTAssertEqual(sent[0].request.url.absoluteString,
+                       "https://balenthiran.co.uk/snipit/api/productions/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/takes")
+    }
+
+    func testAServerWithSavingOffAnswers404AndItSurfacesAsRejected() async throws {
+        let transport = FakeTransport([(404, "")])
+
+        do {
+            _ = try await client(transport).saveTake(video, productionID: "p")
+            XCTFail("expected a rejection")
+        } catch {
+            XCTAssertEqual(error as? SnipItError, .rejected(status: 404, message: ""))
+        }
+    }
+
     func testTheUploadBodyIsNotLeftOnDisk() async throws {
         let before = try Self.uploadBodies()
         let transport = FakeTransport([(500, "boom")])

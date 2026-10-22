@@ -20,12 +20,25 @@ ingress:
         - balenthiran.co.uk
       secretName: balenthiran-tls   # shared wildcard cert — no per-project TLS setup
 
-# No persistence block, and no PVC template, on purpose (#22). snip-it keeps nothing of a
+# Apart from the optional `takes` volume above, no persistence on purpose (#22). snip-it keeps nothing of a
 # visitor's media between requests: the browser holds the video and re-sends it for the cut, so
 # everything written to disk belongs to one job or one response and is deleted by it. What is
 # left is scratch on the pod's own ephemeral disk, sized by *concurrent* work rather than
 # cumulative use — which also means no RWO volume, so no `strategy: Recreate` and no single-node
 # pinning. This chart is now field-for-field the shared template again.
+
+# Saved takes (BEH-EDITION-3). OFF by default, and turning it on REVERSES #22: this is the one
+# volume snip-it keeps, holding takes a creator pressed Save on in the Studio app. Everything
+# else still lives and dies on the pod's ephemeral disk. Enabling it mounts the PVC on the
+# backend, sets Takes__RootPath, and switches the backend to `strategy: Recreate` (an RWO volume
+# cannot be attached to two pods during a rolling update). 50Gi is OCI Block Volume's floor (#13).
+# With it off the takes routes answer 404 and the app says it isn't keeping takes.
+takes:
+  persistence:
+    enabled: false
+    size: 50Gi
+    storageClass: ""            # "" = the cluster default
+    mountPath: /data/takes
 
 apps:
   - name: backend

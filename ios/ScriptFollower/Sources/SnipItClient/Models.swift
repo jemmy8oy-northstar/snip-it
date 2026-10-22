@@ -39,6 +39,21 @@ public struct TranscriptWord: Codable, Sendable, Equatable {
     }
 }
 
+/// A take kept on snip-it's server. `name` is the take's file name on the phone, which is what
+/// makes "is this take saved?" a lookup. `savedAt` stays the server's ISO 8601 text: it carries
+/// fractional seconds, which the standard decoding strategy refuses.
+public struct SavedTake: Codable, Sendable, Equatable {
+    public let name: String
+    public let bytes: Int64
+    public let savedAt: String
+
+    public init(name: String, bytes: Int64, savedAt: String) {
+        self.name = name
+        self.bytes = bytes
+        self.savedAt = savedAt
+    }
+}
+
 struct Transcript: Decodable {
     let words: [TranscriptWord]
 }
