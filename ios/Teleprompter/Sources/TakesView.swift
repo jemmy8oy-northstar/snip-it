@@ -10,6 +10,7 @@ struct Take: Identifiable, Hashable {
     var id: URL { url }
     var isCut: Bool { url.deletingPathExtension().lastPathComponent.hasSuffix(TakeLibrary.cutSuffix) }
     var coverage: TakeCoverage? { TakeCoverage.read(for: url, cutSuffix: TakeLibrary.cutSuffix) }
+    var transcript: TakeTranscript? { TakeTranscript.read(for: url, cutSuffix: TakeLibrary.cutSuffix) }
 }
 
 /// A production's takes are the files in its Takes directory; the directory is the whole database.
@@ -33,7 +34,7 @@ struct TakeLibrary {
     func all() -> [Take] {
         let files = (try? FileManager.default.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: [.creationDateKey])) ?? []
-        // Videos only: a take's coverage file sits beside it.
+        // Videos only: a take's coverage and transcript files sit beside it.
         return files
             .filter { ["mov", "mp4"].contains($0.pathExtension.lowercased()) }
             .map { Take(url: $0, date: (try? $0.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast) }
@@ -49,6 +50,7 @@ struct TakeLibrary {
         try? FileManager.default.removeItem(at: take.url)
         if !take.isCut {
             try? FileManager.default.removeItem(at: TakeCoverage.url(for: take.url, cutSuffix: Self.cutSuffix))
+            try? FileManager.default.removeItem(at: TakeTranscript.url(for: take.url, cutSuffix: Self.cutSuffix))
         }
     }
 }
@@ -78,7 +80,7 @@ struct TakesView: View {
         .refreshable { takes = library.all() }
         .onAppear { takes = library.all() }
         .fullScreenCover(item: $playing) { take in
-            TakePlayer(url: take.url)
+            TakePlayer(url: take.url, transcript: take.transcript)
         }
         // Every delete asks first (snip-it.notes.md#2026-10-21-0005).
         .confirmationDialog("Delete this take?",
@@ -201,26 +203,48 @@ struct TakesView: View {
 }
 
 /// A take played full screen with the system player (BEH-TELE-3), so scrubbing, AirPlay and
-/// picture in picture come for free.
+/// picture in picture come for free. What was said sits under it (BEH-EDITION-4).
 struct TakePlayer: View {
     @State private var player: AVPlayer
+    let transcript: TakeTranscript?
     @Environment(\.dismiss) private var dismiss
 
-    init(url: URL) {
+    init(url: URL, transcript: TakeTranscript?) {
         _player = State(initialValue: AVPlayer(url: url))
+        self.transcript = transcript
     }
 
     var body: some View {
         // Done sits in a bar above the video: an overlay would cover the player's own corner controls.
         NavigationStack {
-            VideoPlayer(player: player)
-                .background(.black)
-                .toolbar {
-                    Button("Done") { dismiss() }
+            VStack(spacing: 0) {
+                VideoPlayer(player: player)
+                ScrollView {
+                    Text(Self.describe(transcript))
+                        .foregroundStyle(transcript?.text.isEmpty == false ? Color.primary : Color.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .textSelection(.enabled)
                 }
-                .toolbarBackground(.visible, for: .navigationBar)
+                .frame(maxHeight: 180)
+                .background(.background)
+            }
+            .background(.black)
+            .toolbar {
+                Button("Done") { dismiss() }
+            }
+            .toolbarBackground(.visible, for: .navigationBar)
         }
         .onAppear { player.play() }
         .onDisappear { player.pause() }
+    }
+
+    /// No file and an empty file are different: one take was never listened to, the other was
+    /// and heard nothing.
+    static func describe(_ transcript: TakeTranscript?) -> String {
+        guard let transcript else {
+            return "No transcript. The speech model wasn't listening when this take was recorded."
+        }
+        return transcript.text.isEmpty ? "Nothing was heard in this take." : transcript.text
     }
 }

@@ -13,11 +13,7 @@ public struct TakeCoverage: Codable, Equatable, Sendable {
     /// Stored beside the take: `take-1.mov` has `take-1.coverage.json`. A cut of the take
     /// (`take-1-cut.mp4`) shares its original's, because cutting pauses removes no lines.
     public static func url(for take: URL, cutSuffix: String) -> URL {
-        var name = take.deletingPathExtension().lastPathComponent
-        if name.hasSuffix(cutSuffix) {
-            name.removeLast(cutSuffix.count)
-        }
-        return take.deletingLastPathComponent().appending(path: name + ".coverage.json")
+        TakeSidecar.url(for: take, cutSuffix: cutSuffix, kind: "coverage")
     }
 
     public static func read(for take: URL, cutSuffix: String) -> TakeCoverage? {

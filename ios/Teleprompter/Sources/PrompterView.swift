@@ -53,6 +53,7 @@ final class PrompterSession {
                 level: { [weak self] level in Task { @MainActor in self?.level = level } },
                 status: { [weak self] text in Task { @MainActor in self?.status = text.isEmpty ? nil : text } }
             )
+            listening = true
         } catch {
             status = error.localizedDescription
         }
@@ -61,10 +62,11 @@ final class PrompterSession {
     func stop() async {
         if isRecording {
             _ = try? await recorder.stopRecording()
-            saveCoverage()
+            saveSidecars()
             isRecording = false
         }
         await speech.stop()
+        listening = false
         recorder.stopRunning()
     }
 
@@ -74,6 +76,8 @@ final class PrompterSession {
 
     func hear(_ text: String) {
         lastHeard = text.split(separator: " ").suffix(6).joined(separator: " ")
+        heardText = text
+        transcript?.heard(text)
         if follower.hear(text) {
             moved()
         }
@@ -114,7 +118,7 @@ final class PrompterSession {
         if isRecording {
             do {
                 _ = try await recorder.stopRecording()
-                saveCoverage()
+                saveSidecars()
                 status = "Saved. It's in Takes."
             } catch {
                 status = error.localizedDescription
@@ -125,21 +129,32 @@ final class PrompterSession {
             let take = takes.newTakeURL()
             recording = take
             coverage = CoverageRecorder(startingAt: currentLine)
+            // No engine, no transcript: an empty one would say nothing was said (BEH-EDITION-4).
+            transcript = listening ? TranscriptRecorder(heardBefore: heardText) : nil
             recorder.startRecording(to: take)
             isRecording = true
         }
     }
 
-    // Which lines the take covered (BEH-SCRIPT-4), written beside it when it stops.
+    // Which lines the take covered (BEH-SCRIPT-4) and what was said in it (BEH-EDITION-4),
+    // written beside it when it stops.
     private var recording: URL?
     private var coverage: CoverageRecorder?
+    private var transcript: TranscriptRecorder?
+    /// Everything the engine has heard this run, and whether it is running at all.
+    private var heardText = ""
+    private var listening = false
 
-    private func saveCoverage() {
+    private func saveSidecars() {
         if let recording, let coverage {
             try? coverage.coverage(of: lines).write(for: recording, cutSuffix: TakeLibrary.cutSuffix)
         }
+        if let recording, let transcript {
+            try? transcript.transcript().write(for: recording, cutSuffix: TakeLibrary.cutSuffix)
+        }
         recording = nil
         coverage = nil
+        transcript = nil
     }
 }
 
