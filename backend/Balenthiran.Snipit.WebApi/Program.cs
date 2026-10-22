@@ -63,6 +63,7 @@ app.MapGroup("/api")
     .MapStatusRoutes()
     .MapTranscriptionRoutes()
     .MapCutRoutes()
+    .MapTakeRoutes()
     .WithOpenApi();
 
 app.Run();

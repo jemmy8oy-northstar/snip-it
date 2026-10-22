@@ -34,6 +34,11 @@ public static class ServiceRegistration
         services.Configure<FileStorageOptions>(configuration.GetSection("FileStorage"));
         services.AddSingleton<IFileStorageService, LocalDiskFileStorageService>();
 
+        // Saved takes (BEH-EDITION-3): the one thing snip-it keeps, and only when the creator
+        // presses Save. Off unless Takes:RootPath points at a volume.
+        services.Configure<TakeStoreOptions>(configuration.GetSection(TakeStoreOptions.SectionName));
+        services.AddSingleton<ITakeStore, LocalDiskTakeStore>();
+
         // Background job queue (in-process, single worker — see docs/specs for rationale)
         services.AddSingleton<IBackgroundJobQueue, BackgroundJobQueue>();
         services.AddHostedService<QueuedHostedService>();
