@@ -195,6 +195,37 @@ test('uploading a file transcribes it and opens the editor', async ({ page }) =>
   expect(new URL(uploads[0].url).pathname).toBe('/snipit/api/transcriptions');
 });
 
+// BEH-UP-2: the form's only field is one video or audio file.
+test('the upload form takes a single video or audio file', async ({ page }) => {
+  await page.goto('./editor');
+
+  const form = page.locator('.upload-panel');
+  await expect(form.locator('input, select, textarea')).toHaveCount(1);
+
+  const file = form.getByLabel('Video or audio file');
+  await expect(file).toHaveAttribute('type', 'file');
+  await expect(file).toHaveAttribute('accept', 'video/*,audio/*');
+  await expect(file).not.toHaveAttribute('multiple');
+});
+
+// BEH-EDIT-0: the id in the editor's URL is the transcription it loads.
+test('the editor loads the transcription its URL names', async ({ page }) => {
+  const asked: string[] = [];
+  page.on('request', (request) => {
+    if (request.method() === 'GET' && request.url().includes('/api/transcriptions/')) {
+      asked.push(new URL(request.url()).pathname);
+    }
+  });
+
+  await page.goto(EDITOR_PATH);
+  await expect(page.getByText('transcribe', { exact: false }).first()).toBeVisible();
+
+  expect(asked.length).toBeGreaterThan(0);
+  for (const path of asked) {
+    expect(path.startsWith(`/snipit/api/transcriptions/${MOCK_TRANSCRIPTION_JOB_ID}`)).toBe(true);
+  }
+});
+
 test('remove-filler-words changes the edit stats', async ({ page }) => {
   await page.goto(EDITOR_PATH);
   await attachSourceFile(page);
