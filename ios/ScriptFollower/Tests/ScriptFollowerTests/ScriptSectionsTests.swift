@@ -104,6 +104,46 @@ final class ScriptSectionsTests: XCTestCase {
         XCTAssertEqual(ScriptSection(body: "one\n\n two \n  ").lineCount, 2)
     }
 
+    // ── folded rows and section management: the model underneath (BEH-SCRIPT-2, BEH-SCRIPT-3) ──
+
+    func testAFoldedRowHasTheNameAndLineCountOfItsSection() {
+        let sections = ScriptSections.parse("# Intro\nhello\n\nthere\n---\nlone")
+        XCTAssertEqual(sections.map(\.name), ["Intro", nil])
+        XCTAssertEqual(sections.map(\.lineCount), [2, 1])
+    }
+
+    func testAnEmptySectionHasNoLines() {
+        XCTAssertEqual(ScriptSections.parse("# A\n# B\nhi").map(\.lineCount), [0, 1])
+    }
+
+    func testClearingASectionKeepsItsNameAndMarker() {
+        var sections = ScriptSections.parse("# Intro\nhello\nthere\n\n# Outro\nbye")
+        sections[0].body = ""
+        XCTAssertEqual(sections[0].name, "Intro")
+        XCTAssertEqual(sections[0].lineCount, 0)
+        let saved = ScriptSections.join(sections)
+        XCTAssertEqual(saved, "# Intro\n\n# Outro\nbye")
+        XCTAssertEqual(ScriptSections.parse(saved).map(\.name), ["Intro", "Outro"])
+    }
+
+    func testDeletingASectionRemovesItsMarkerToo() {
+        var sections = ScriptSections.parse("# Intro\nhello\n\n# Outro\nbye")
+        sections.remove(at: 0)
+        let saved = ScriptSections.join(sections)
+        XCTAssertEqual(saved, "# Outro\nbye")
+        XCTAssertFalse(saved.contains("Intro"))
+    }
+
+    func testReorderingSectionsReordersTheSavedScript() {
+        var sections = ScriptSections.parse("# A\none\n\n# B\ntwo")
+        sections.reverse()
+        XCTAssertEqual(ScriptSections.join(sections), "# B\ntwo\n\n# A\none")
+    }
+
+    func testDeletingEverySectionLeavesAnEmptyScript() {
+        XCTAssertEqual(ScriptSections.join([]), "")
+    }
+
     // ── the prompter reads straight through (BEH-SCRIPT-1) ──
 
     func testThePrompterNeverShowsAMarker() {
